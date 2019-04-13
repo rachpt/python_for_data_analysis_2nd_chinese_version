@@ -1,27 +1,29 @@
+# 第10章 数据聚合与分组运算
+
 对数据集进行分组并对各组应用一个函数（无论是聚合还是转换），通常是数据分析工作中的重要环节。在将数据集加载、融合、准备好之后，通常就是计算分组统计或生成透视表。pandas提供了一个灵活高效的gruopby功能，它使你能以一种自然的方式对数据集进行切片、切块、摘要等操作。
 
 关系型数据库和SQL（Structured Query Language，结构化查询语言）能够如此流行的原因之一就是其能够方便地对数据进行连接、过滤、转换和聚合。但是，像SQL这样的查询语言所能执行的分组运算的种类很有限。在本章中你将会看到，由于Python和pandas强大的表达能力，我们可以执行复杂得多的分组运算（利用任何可以接受pandas对象或NumPy数组的函数）。在本章中，你将会学到：
 
-- 使用一个或多个键（形式可以是函数、数组或DataFrame列名）分割pandas对象。
-- 计算分组的概述统计，比如数量、平均值或标准差，或是用户定义的函数。
-- 应用组内转换或其他运算，如规格化、线性回归、排名或选取子集等。
-- 计算透视表或交叉表。
-- 执行分位数分析以及其它统计分组分析。
+* 使用一个或多个键（形式可以是函数、数组或DataFrame列名）分割pandas对象。
+* 计算分组的概述统计，比如数量、平均值或标准差，或是用户定义的函数。
+* 应用组内转换或其他运算，如规格化、线性回归、排名或选取子集等。
+* 计算透视表或交叉表。
+* 执行分位数分析以及其它统计分组分析。
 
->笔记：对时间序列数据的聚合（groupby的特殊用法之一）也称作重采样（resampling），本书将在第11章中单独对其进行讲解。
+> 笔记：对时间序列数据的聚合（groupby的特殊用法之一）也称作重采样（resampling），本书将在第11章中单独对其进行讲解。
 
-# 10.1 GroupBy机制
+## 10.1 GroupBy机制
 
 Hadley Wickham（许多热门R语言包的作者）创造了一个用于表示分组运算的术语"split-apply-combine"（拆分－应用－合并）。第一个阶段，pandas对象（无论是Series、DataFrame还是其他的）中的数据会根据你所提供的一个或多个键被拆分（split）为多组。拆分操作是在对象的特定轴上执行的。例如，DataFrame可以在其行（axis=0）或列（axis=1）上进行分组。然后，将一个函数应用（apply）到各个分组并产生一个新值。最后，所有这些函数的执行结果会被合并（combine）到最终的结果对象中。结果对象的形式一般取决于数据上所执行的操作。图10-1大致说明了一个简单的分组聚合过程。
 
-![图10-1 分组聚合演示](http://upload-images.jianshu.io/upload_images/7178691-e5c671e09ecf94be.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![&#x56FE;10-1 &#x5206;&#x7EC4;&#x805A;&#x5408;&#x6F14;&#x793A;](http://upload-images.jianshu.io/upload_images/7178691-e5c671e09ecf94be.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
 分组键可以有多种形式，且类型不必相同：
 
-- 列表或数组，其长度与待分组的轴一样。
-- 表示DataFrame某个列名的值。
-- 字典或Series，给出待分组轴上的值与分组名之间的对应关系。
-- 函数，用于处理轴索引或索引中的各个标签。
+* 列表或数组，其长度与待分组的轴一样。
+* 表示DataFrame某个列名的值。
+* 字典或Series，给出待分组轴上的值与分组名之间的对应关系。
+* 函数，用于处理轴索引或索引中的各个标签。
 
 注意，后三种都只是快捷方式而已，其最终目的仍然是产生一组用于拆分对象的值。如果觉得这些东西看起来很抽象，不用担心，我将在本章中给出大量有关于此的示例。首先来看看下面这个非常简单的表格型数据集（以DataFrame的形式）：
 
@@ -42,6 +44,7 @@ Out[11]:
 ```
 
 假设你想要按key1进行分组，并计算data1列的平均值。实现该功能的方式有很多，而我们这里要用的是：访问data1，并根据key1调用groupby：
+
 ```python
 In [12]: grouped = df['data1'].groupby(df['key1'])
 
@@ -49,7 +52,8 @@ In [13]: grouped
 Out[13]: <pandas.core.groupby.SeriesGroupBy object at 0x7faa31537390>
 ```
 
-变量grouped是一个GroupBy对象。它实际上还没有进行任何计算，只是含有一些有关分组键df['key1']的中间数据而已。换句话说，该对象已经有了接下来对各分组执行运算所需的一切信息。例如，我们可以调用GroupBy的mean方法来计算分组平均值：
+变量grouped是一个GroupBy对象。它实际上还没有进行任何计算，只是含有一些有关分组键df\['key1'\]的中间数据而已。换句话说，该对象已经有了接下来对各分组执行运算所需的一切信息。例如，我们可以调用GroupBy的mean方法来计算分组平均值：
+
 ```python
 In [14]: grouped.mean()
 Out[14]: 
@@ -59,9 +63,10 @@ b   -0.537585
 Name: data1, dtype: float64
 ```
 
-稍后我将详细讲解.mean()的调用过程。这里最重要的是，数据（Series）根据分组键进行了聚合，产生了一个新的Series，其索引为key1列中的唯一值。之所以结果中索引的名称为key1，是因为原始DataFrame的列df['key1']就叫这个名字。
+稍后我将详细讲解.mean\(\)的调用过程。这里最重要的是，数据（Series）根据分组键进行了聚合，产生了一个新的Series，其索引为key1列中的唯一值。之所以结果中索引的名称为key1，是因为原始DataFrame的列df\['key1'\]就叫这个名字。
 
 如果我们一次传入多个数组的列表，就会得到不同的结果：
+
 ```python
 In [15]: means = df['data1'].groupby([df['key1'], df['key2']]).mean()
 
@@ -76,6 +81,7 @@ Name: data1, dtype: float64
 ```
 
 这里，我通过两个键对数据进行了分组，得到的Series具有一个层次化索引（由唯一的键对组成）：
+
 ```python
 In [17]: means.unstack()
 Out[17]: 
@@ -86,6 +92,7 @@ b    -0.519439 -0.555730
 ```
 
 在这个例子中，分组键均为Series。实际上，分组键可以是任何长度适当的数组：
+
 ```python
 In [18]: states = np.array(['Ohio', 'California', 'California', 'Ohio', 'Ohio'])
 
@@ -101,6 +108,7 @@ Name: data1, dtype: float64
 ```
 
 通常，分组信息就位于相同的要处理DataFrame中。这里，你还可以将列名（可以是字符串、数字或其他Python对象）用作分组键：
+
 ```python
 In [21]: df.groupby('key1').mean()
 Out[21]: 
@@ -119,9 +127,10 @@ b    one  -0.519439  0.281746
      two  -0.555730  0.769023
 ```
 
-你可能已经注意到了，第一个例子在执行df.groupby('key1').mean()时，结果中没有key2列。这是因为df['key2']不是数值数据（俗称“麻烦列”），所以被从结果中排除了。默认情况下，所有数值列都会被聚合，虽然有时可能会被过滤为一个子集，稍后就会碰到。
+你可能已经注意到了，第一个例子在执行df.groupby\('key1'\).mean\(\)时，结果中没有key2列。这是因为df\['key2'\]不是数值数据（俗称“麻烦列”），所以被从结果中排除了。默认情况下，所有数值列都会被聚合，虽然有时可能会被过滤为一个子集，稍后就会碰到。
 
 无论你准备拿groupby做什么，都有可能会用到GroupBy的size方法，它可以返回一个含有分组大小的Series：
+
 ```python
 In [23]: df.groupby(['key1', 'key2']).size()
 Out[23]: 
@@ -135,8 +144,10 @@ dtype: int64
 
 注意，任何分组关键词中的缺失值，都会被从结果中除去。
 
-## 对分组进行迭代
+### 对分组进行迭代
+
 GroupBy对象支持迭代，可以产生一组二元元组（由分组名和数据块组成）。看下面的例子：
+
 ```python
 In [24]: for name, group in df.groupby('key1'):
    ....:     print(name)
@@ -154,6 +165,7 @@ b
 ```
 
 对于多重键的情况，元组的第一个元素将会是由键值组成的元组：
+
 ```python
 In [25]: for (k1, k2), group in df.groupby(['key1', 'key2']):
    ....:     print((k1, k2))
@@ -175,6 +187,7 @@ In [25]: for (k1, k2), group in df.groupby(['key1', 'key2']):
 ```
 
 当然，你可以对这些数据片段做任何操作。有一个你可能会觉得有用的运算：将这些数据片段做成一个字典：
+
 ```python
 In [26]: pieces = dict(list(df.groupby('key1')))
 
@@ -186,6 +199,7 @@ Out[27]:
 ```
 
 groupby默认是在axis=0上进行分组的，通过设置也可以在其他任何轴上进行分组。拿上面例子中的df来说，我们可以根据dtype对列进行分组：
+
 ```python
 In [28]: df.dtypes
 Out[28]: 
@@ -199,6 +213,7 @@ In [29]: grouped = df.groupby(df.dtypes, axis=1)
 ```
 
 可以如下打印分组：
+
 ```python
 In [30]: for dtype, group in grouped:
    ....:     print(dtype)
@@ -220,20 +235,24 @@ object
 4    a  one
 ```
 
-## 选取一列或列的子集
+### 选取一列或列的子集
+
 对于由DataFrame产生的GroupBy对象，如果用一个（单个字符串）或一组（字符串数组）列名对其进行索引，就能实现选取部分列进行聚合的目的。也就是说：
+
 ```python
 df.groupby('key1')['data1']
 df.groupby('key1')[['data2']]
 ```
 
 是以下代码的语法糖：
+
 ```python
 df['data1'].groupby(df['key1'])
 df[['data2']].groupby(df['key1'])
 ```
 
 尤其对于大数据集，很可能只需要对部分列进行聚合。例如，在前面那个数据集中，如果只需计算data2列的平均值并以DataFrame形式得到结果，可以这样写：
+
 ```python
 In [31]: df.groupby(['key1', 'key2'])[['data2']].mean()
 Out[31]: 
@@ -246,6 +265,7 @@ b    one   0.281746
 ```
 
 这种索引操作所返回的对象是一个已分组的DataFrame（如果传入的是列表或数组）或已分组的Series（如果传入的是标量形式的单个列名）：
+
 ```python
 In [32]: s_grouped = df.groupby(['key1', 'key2'])['data2']
 
@@ -262,8 +282,10 @@ b     one     0.281746
 Name: data2, dtype: float64
 ```
 
-##通过字典或Series进行分组
+### 通过字典或Series进行分组
+
 除数组以外，分组信息还可以其他形式存在。来看另一个示例DataFrame：
+
 ```python
 In [35]: people = pd.DataFrame(np.random.randn(5, 5),
    ....:                       columns=['a', 'b', 'c', 'd', 'e'],
@@ -282,12 +304,14 @@ Travis -0.713544 -0.831154 -2.370232 -1.860761 -0.860757
 ```
 
 现在，假设已知列的分组关系，并希望根据分组计算列的和：
+
 ```python
 In [38]: mapping = {'a': 'red', 'b': 'red', 'c': 'blue',
    ....:            'd': 'blue', 'e': 'red', 'f' : 'orange'}
 ```
 
 现在，你可以将这个字典传给groupby，来构造数组，但我们可以直接传递字典（我包含了键“f”来强调，存在未使用的分组键是可以的）：
+
 ```python
 In [39]: by_column = people.groupby(mapping, axis=1)
 
@@ -302,6 +326,7 @@ Travis -4.230992 -2.405455
 ```
 
 Series也有同样的功能，它可以被看做一个固定大小的映射：
+
 ```python
 In [41]: map_series = pd.Series(mapping)
 
@@ -325,8 +350,10 @@ Jim        2    3
 Travis     2    3
 ```
 
-##通过函数进行分组
+### 通过函数进行分组
+
 比起使用字典或Series，使用Python函数是一种更原生的方法定义分组映射。任何被当做分组键的函数都会在各个索引值上被调用一次，其返回值就会被用作分组名称。具体点说，以上一小节的示例DataFrame为例，其索引值为人的名字。你可以计算一个字符串长度的数组，更简单的方法是传入len函数：
+
 ```python
 In [44]: people.groupby(len).sum()
 Out[44]: 
@@ -337,6 +364,7 @@ Out[44]:
 ```
 
 将函数跟数组、列表、字典、Series混合使用也不是问题，因为任何东西在内部都会被转换为数组：
+
 ```python
 In [45]: key_list = ['one', 'one', 'one', 'two', 'two']
 
@@ -349,8 +377,10 @@ Out[46]:
 6 two -0.713544 -0.831154 -2.370232 -1.860761 -0.860757
 ```
 
-## 根据索引级别分组
+### 根据索引级别分组
+
 层次化索引数据集最方便的地方就在于它能够根据轴索引的一个级别进行聚合：
+
 ```python
 In [47]: columns = pd.MultiIndex.from_arrays([['US', 'US', 'US', 'JP', 'JP'],
    ....:                                     [1, 3, 5, 1, 3]],
@@ -369,6 +399,7 @@ tenor         1         3         5         1         3
 ```
 
 要根据级别分组，使用level关键字传递级别序号或名字：
+
 ```python
 In [50]: hier_df.groupby(level='cty', axis=1).count()
 Out[50]: 
@@ -379,16 +410,16 @@ cty  JP  US
 3     2   3
 ```
 
-# 10.2 数据聚合
+## 10.2 数据聚合
 
-聚合指的是任何能够从数组产生标量值的数据转换过程。之前的例子已经用过一些，比如mean、count、min以及sum等。你可能想知道在GroupBy对象上调用mean()时究竟发生了什么。许多常见的聚合运算（如表10-1所示）都有进行优化。然而，除了这些方法，你还可以使用其它的。
+聚合指的是任何能够从数组产生标量值的数据转换过程。之前的例子已经用过一些，比如mean、count、min以及sum等。你可能想知道在GroupBy对象上调用mean\(\)时究竟发生了什么。许多常见的聚合运算（如表10-1所示）都有进行优化。然而，除了这些方法，你还可以使用其它的。
 
-
-![表10-1 经过优化的groupby方法](http://upload-images.jianshu.io/upload_images/7178691-ba8de524e08b1b6f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![&#x8868;10-1 &#x7ECF;&#x8FC7;&#x4F18;&#x5316;&#x7684;groupby&#x65B9;&#x6CD5;](http://upload-images.jianshu.io/upload_images/7178691-ba8de524e08b1b6f.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
 你可以使用自己发明的聚合运算，还可以调用分组对象上已经定义好的任何方法。例如，quantile可以计算Series或DataFrame列的样本分位数。
 
-虽然quantile并没有明确地实现于GroupBy，但它是一个Series方法，所以这里是能用的。实际上，GroupBy会高效地对Series进行切片，然后对各片调用piece.quantile(0.9)，最后将这些结果组装成最终结果：
+虽然quantile并没有明确地实现于GroupBy，但它是一个Series方法，所以这里是能用的。实际上，GroupBy会高效地对Series进行切片，然后对各片调用piece.quantile\(0.9\)，最后将这些结果组装成最终结果：
+
 ```python
 In [51]: df
 Out[51]: 
@@ -410,6 +441,7 @@ Name: data1, dtype: float64
 ```
 
 如果要使用你自己的聚合函数，只需将其传入aggregate或agg方法即可：
+
 ```python
 In [54]: def peak_to_peak(arr):
    ....:     return arr.max() - arr.min()
@@ -422,6 +454,7 @@ b     0.036292  0.487276
 ```
 
 你可能注意到注意，有些方法（如describe）也是可以用在这里的，即使严格来讲，它们并非聚合运算：
+
 ```python
 In [56]: grouped.describe()
 Out[56]: 
@@ -435,7 +468,7 @@ max count      mean       std       min       25%       50%
 key1                                                                     
 a     1.965781   3.0  0.910916  0.712217  0.092908  0.669671  1.246435   
 b    -0.519439   2.0  0.525384  0.344556  0.281746  0.403565  0.525384   
-                          
+
            75%       max  
 key1                      
 a     1.319920  1.393406  
@@ -444,11 +477,12 @@ b     0.647203  0.769023
 
 在后面的10.3节，我将详细说明这到底是怎么回事。
 
->笔记：自定义聚合函数要比表10-1中那些经过优化的函数慢得多。这是因为在构造中间分组数据块时存在非常大的开销（函数调用、数据重排等）。
+> 笔记：自定义聚合函数要比表10-1中那些经过优化的函数慢得多。这是因为在构造中间分组数据块时存在非常大的开销（函数调用、数据重排等）。
 
-## 面向列的多函数应用
- 
-回到前面小费的例子。使用read_csv导入数据之后，我们添加了一个小费百分比的列tip_pct：
+### 面向列的多函数应用
+
+回到前面小费的例子。使用read\_csv导入数据之后，我们添加了一个小费百分比的列tip\_pct：
+
 ```python
 In [57]: tips = pd.read_csv('examples/tips.csv')
 
@@ -510,7 +544,7 @@ Thur No      0.160298  0.038774      0.193350
 
 这里，我们传递了一组聚合函数进行聚合，独立对数据分组进行评估。
 
-你并非一定要接受GroupBy自动给出的那些列名，特别是lambda函数，它们的名称是'<lambda>'，这样的辨识度就很低了（通过函数的__name__属性看看就知道了）。因此，如果传入的是一个由(name,function)元组组成的列表，则各元组的第一个元素就会被用作DataFrame的列名（可以将这种二元元组列表看做一个有序映射）：
+你并非一定要接受GroupBy自动给出的那些列名，特别是lambda函数，它们的名称是''，这样的辨识度就很低了（通过函数的**name**属性看看就知道了）。因此，如果传入的是一个由\(name,function\)元组组成的列表，则各元组的第一个元素就会被用作DataFrame的列名（可以将这种二元元组列表看做一个有序映射）：
 
 ```python
 In [64]: grouped_pct.agg([('foo', 'mean'), ('bar', np.std)])
@@ -527,7 +561,7 @@ Thur No      0.160298  0.038774
      Yes     0.163863  0.039389
 ```
 
-对于DataFrame，你还有更多选择，你可以定义一组应用于全部列的一组函数，或不同的列应用不同的函数。假设我们想要对tip_pct和total_bill列计算三个统计信息：
+对于DataFrame，你还有更多选择，你可以定义一组应用于全部列的一组函数，或不同的列应用不同的函数。假设我们想要对tip\_pct和total\_bill列计算三个统计信息：
 
 ```python
 In [65]: functions = ['count', 'mean', 'max']
@@ -620,9 +654,9 @@ Thur No      0.072961  0.266312  0.160298  0.038774  112
 
 只有将多个函数应用到至少一列时，DataFrame才会拥有层次化的列。
 
-## 以“没有行索引”的形式返回聚合数据
+### 以“没有行索引”的形式返回聚合数据
 
-到目前为止，所有示例中的聚合数据都有由唯一的分组键组成的索引（可能还是层次化的）。由于并不总是需要如此，所以你可以向groupby传入as_index=False以禁用该功能：
+到目前为止，所有示例中的聚合数据都有由唯一的分组键组成的索引（可能还是层次化的）。由于并不总是需要如此，所以你可以向groupby传入as\_index=False以禁用该功能：
 
 ```python
 In [73]: tips.groupby(['day', 'smoker'], as_index=False).mean()
@@ -638,15 +672,16 @@ Out[73]:
 7  Thur    Yes   19.190588  3.030000  2.352941  0.163863
 ```
 
-当然，对结果调用reset_index也能得到这种形式的结果。使用as_index=False方法可以避免一些不必要的计算。
+当然，对结果调用reset\_index也能得到这种形式的结果。使用as\_index=False方法可以避免一些不必要的计算。
 
-# 10.3 apply：一般性的“拆分－应用－合并”
+## 10.3 apply：一般性的“拆分－应用－合并”
 
 最通用的GroupBy方法是apply，本节剩余部分将重点讲解它。如图10-2所示，apply会将待处理的对象拆分成多个片段，然后对各片段调用传入的函数，最后尝试将各片段组合到一起。
 
-![图10-2 分组聚合示例](http://upload-images.jianshu.io/upload_images/7178691-7e8bb217f599b4ae.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![&#x56FE;10-2 &#x5206;&#x7EC4;&#x805A;&#x5408;&#x793A;&#x4F8B;](http://upload-images.jianshu.io/upload_images/7178691-7e8bb217f599b4ae.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-回到之前那个小费数据集，假设你想要根据分组选出最高的5个tip_pct值。首先，编写一个选取指定列具有最大值的行的函数：
+回到之前那个小费数据集，假设你想要根据分组选出最高的5个tip\_pct值。首先，编写一个选取指定列具有最大值的行的函数：
+
 ```python
 In [74]: def top(df, n=5, column='tip_pct'):
    ....:     return df.sort_values(by=column)[-n:]
@@ -663,6 +698,7 @@ Out[75]:
 ```
 
 现在，如果对smoker分组并用该函数调用apply，就会得到：
+
 ```python
 In [76]: tips.groupby('smoker').apply(top)
 Out[76]: 
@@ -683,6 +719,7 @@ Yes    109       14.31  4.00    Yes   Sat  Dinner     2  0.279525
 这里发生了什么？top函数在DataFrame的各个片段上调用，然后结果由pandas.concat组装到一起，并以分组名称进行了标记。于是，最终结果就有了一个层次化索引，其内层索引值来自原DataFrame。
 
 如果传给apply的函数能够接受其他参数或关键字，则可以将这些内容放在函数名后面一并传入：
+
 ```python
 In [77]: tips.groupby(['smoker', 'day']).apply(top, n=1, column='total_bill')
 Out[77]: 
@@ -698,9 +735,10 @@ Yes    Fri  95        40.17   4.73    Yes   Fri  Dinner     4  0.117750
        Thur 197       43.11   5.00    Yes  Thur   Lunch     4  0.115982
 ```
 
->笔记：除这些基本用法之外，能否充分发挥apply的威力很大程度上取决于你的创造力。传入的那个函数能做什么全由你说了算，它只需返回一个pandas对象或标量值即可。本章后续部分的示例主要用于讲解如何利用groupby解决各种各样的问题。
+> 笔记：除这些基本用法之外，能否充分发挥apply的威力很大程度上取决于你的创造力。传入的那个函数能做什么全由你说了算，它只需返回一个pandas对象或标量值即可。本章后续部分的示例主要用于讲解如何利用groupby解决各种各样的问题。
 
 可能你已经想起来了，之前我在GroupBy对象上调用过describe：
+
 ```python
 In [78]: result = tips.groupby('smoker')['tip_pct'].describe()
 
@@ -739,14 +777,16 @@ dtype: float64
 ```
 
 在GroupBy中，当你调用诸如describe之类的方法时，实际上只是应用了下面两条代码的快捷方式而已：
+
 ```python
 f = lambda x: x.describe()
 grouped.apply(f)
 ```
 
-## 禁止分组键
+### 禁止分组键
 
-从上面的例子中可以看出，分组键会跟原始对象的索引共同构成结果对象中的层次化索引。将group_keys=False传入groupby即可禁止该效果：
+从上面的例子中可以看出，分组键会跟原始对象的索引共同构成结果对象中的层次化索引。将group\_keys=False传入groupby即可禁止该效果：
+
 ```python
 In [81]: tips.groupby('smoker', group_keys=False).apply(top)
 Out[81]: 
@@ -763,9 +803,10 @@ Out[81]:
 172        7.25  5.15    Yes   Sun  Dinner     2  0.710345
 ```
 
-## 分位数和桶分析
+### 分位数和桶分析
 
 我曾在第8章中讲过，pandas有一些能根据指定面元或样本分位数将数据拆分成多块的工具（比如cut和qcut）。将这些函数跟groupby结合起来，就能非常轻松地实现对数据集的桶（bucket）或分位数（quantile）分析了。以下面这个简单的随机数据集为例，我们利用cut将其装入长度相等的桶中：
+
 ```python
 In [82]: frame = pd.DataFrame({'data1': np.random.randn(1000),
    ....:                       'data2': np.random.randn(1000)})
@@ -790,6 +831,7 @@ Categories (4, interval[float64]): [(-2.956, -1.23] < (-1.23, 0.489] < (0.489, 2
 ```
 
 由cut返回的Categorical对象可直接传递到groupby。因此，我们可以像下面这样对data2列做一些统计计算：
+
 ```python
 In [85]: def get_stats(group):
    ....:     return {'min': group.min(), 'max': group.max(),
@@ -808,6 +850,7 @@ data1
 ```
 
 这些都是长度相等的桶。要根据样本分位数得到大小相等的桶，使用qcut即可。传入labels=False即可只获取分位数的编号：
+
 ```python
 # Return quantile numbers
 In [88]: grouping = pd.qcut(frame.data1, 10, labels=False)
@@ -832,9 +875,10 @@ data1
 
 我们会在第12章详细讲解pandas的Categorical类型。
 
-## 示例：用特定于分组的值填充缺失值
+### 示例：用特定于分组的值填充缺失值
 
 对于缺失数据的清理工作，有时你会用dropna将其替换掉，而有时则可能会希望用一个固定值或由数据集本身所衍生出来的值去填充NA值。这时就得使用fillna这个工具了。在下面这个例子中，我用平均值去填充NA值：
+
 ```python
 In [91]: s = pd.Series(np.random.randn(6))
 
@@ -862,6 +906,7 @@ dtype: float64
 ```
 
 假设你需要对不同的分组填充不同的值。一种方法是将数据分组，并使用apply和一个能够对各数据块调用fillna的函数即可。下面是一些有关美国几个州的示例数据，这些州又被分为东部和西部：
+
 ```python
 In [95]: states = ['Ohio', 'New York', 'Vermont', 'Florida',
    ....:           'Oregon', 'Nevada', 'California', 'Idaho']
@@ -883,9 +928,10 @@ Idaho        -1.613716
 dtype: float64
 ```
 
-['East'] * 4产生了一个列表，包括了['East']中元素的四个拷贝。将这些列表串联起来。
+\['East'\] \* 4产生了一个列表，包括了\['East'\]中元素的四个拷贝。将这些列表串联起来。
 
 将一些值设为缺失：
+
 ```python
 In [99]: data[['Vermont', 'Nevada', 'Idaho']] = np.nan
 
@@ -909,6 +955,7 @@ dtype: float64
 ```
 
 我们可以用分组平均值去填充NA值:
+
 ```python
 In [102]: fill_mean = lambda g: g.fillna(g.mean())
 
@@ -926,6 +973,7 @@ dtype: float64
 ```
 
 另外，也可以在代码中预定义各组的填充值。由于分组具有一个name属性，所以我们可以拿来用一下：
+
 ```python
 In [104]: fill_values = {'East': 0.5, 'West': -1}
 
@@ -944,9 +992,10 @@ Idaho        -1.000000
 dtype: float64
 ```
 
-## 示例：随机采样和排列
+### 示例：随机采样和排列
 
 假设你想要从一个大数据集中随机抽取（进行替换或不替换）样本以进行蒙特卡罗模拟（Monte Carlo simulation）或其他分析工作。“抽取”的方式有很多，这里使用的方法是对Series使用sample方法：
+
 ```python
 # Hearts, Spades, Clubs, Diamonds
 suits = ['H', 'S', 'C', 'D']
@@ -960,6 +1009,7 @@ deck = pd.Series(card_val, index=cards)
 ```
 
 现在我有了一个长度为52的Series，其索引包括牌名，值则是21点或其他游戏中用于计分的点数（为了简单起见，我当A的点数为1）：
+
 ```python
 In [108]: deck[:13]
 Out[108]: 
@@ -980,6 +1030,7 @@ dtype: int64
 ```
 
 现在，根据我上面所讲的，从整副牌中抽出5张，代码如下：
+
 ```python
 In [109]: def draw(deck, n=5):
    .....:     return deck.sample(n)
@@ -995,6 +1046,7 @@ dtype: int64
 ```
 
 假设你想要从每种花色中随机抽取两张牌。由于花色是牌名的最后一个字符，所以我们可以据此进行分组，并使用apply：
+
 ```python
 In [111]: get_suit = lambda card: card[-1] # last letter is suit
 
@@ -1012,6 +1064,7 @@ dtype: int64
 ```
 
 或者，也可以这样写：
+
 ```python
 In [113]: deck.groupby(get_suit, group_keys=False).apply(draw, n=2)
 Out[113]: 
@@ -1026,9 +1079,10 @@ KS    10
 dtype: int64
 ```
 
-## 示例：分组加权平均数和相关系数
+### 示例：分组加权平均数和相关系数
 
 根据groupby的“拆分－应用－合并”范式，可以进行DataFrame的列与列之间或两个Series之间的运算（比如分组加权平均）。以下面这个数据集为例，它含有分组键、值以及一些权重值：
+
 ```python
 In [114]: df = pd.DataFrame({'category': ['a', 'a', 'a', 'a',
    .....:                                 'b', 'b', 'b', 'b'],
@@ -1049,6 +1103,7 @@ Out[115]:
 ```
 
 然后可以利用category计算分组加权平均数：
+
 ```python
 In [116]: grouped = df.groupby('category')
 
@@ -1063,6 +1118,7 @@ dtype: float64
 ```
 
 另一个例子，考虑一个来自Yahoo!Finance的数据集，其中含有几只股票和标准普尔500指数（符号SPX）的收盘价：
+
 ```python
 In [119]: close_px = pd.read_csv('examples/stock_px_2.csv', parse_dates=True,
    .....:                        index_col=0)
@@ -1088,16 +1144,19 @@ Out[121]:
 ```
 
 来做一个比较有趣的任务：计算一个由日收益率（通过百分数变化计算）与SPX之间的年度相关系数组成的DataFrame。下面是一个实现办法，我们先创建一个函数，用它计算每列和SPX列的成对相关系数：
+
 ```python
 In [122]: spx_corr = lambda x: x.corrwith(x['SPX'])
 ```
 
-接下来，我们使用pct_change计算close_px的百分比变化：
+接下来，我们使用pct\_change计算close\_px的百分比变化：
+
 ```python
 In [123]: rets = close_px.pct_change().dropna()
 ```
 
 最后，我们用年对百分比变化进行分组，可以用一个一行的函数，从每行的标签返回每个datetime标签的year属性：
+
 ```python
 In [124]: get_year = lambda x: x.year
 
@@ -1118,6 +1177,7 @@ Out[126]:
 ```
 
 当然，你还可以计算列与列之间的相关系数。这里，我们计算Apple和Microsoft的年相关系数：
+
 ```python
 In [127]: by_year.apply(lambda g: g['AAPL'].corr(g['MSFT']))
 Out[127]: 
@@ -1133,9 +1193,10 @@ Out[127]:
 dtype: float64
 ```
 
-## 示例：组级别的线性回归
+### 示例：组级别的线性回归
 
 顺着上一个例子继续，你可以用groupby执行更为复杂的分组统计分析，只要函数返回的是pandas对象或标量值即可。例如，我可以定义下面这个regress函数（利用statsmodels计量经济学库）对各数据块执行普通最小二乘法（Ordinary Least Squares，OLS）回归：
+
 ```python
 import statsmodels.api as sm
 def regress(data, yvar, xvars):
@@ -1147,6 +1208,7 @@ def regress(data, yvar, xvars):
 ```
 
 现在，为了按年计算AAPL对SPX收益率的线性回归，执行：
+
 ```python
 In [129]: by_year.apply(regress, 'AAPL', ['SPX'])
 Out[129]: 
@@ -1162,11 +1224,12 @@ Out[129]:
 2011  0.806605   0.001514
 ```
 
-# 10.4 透视表和交叉表
+## 10.4 透视表和交叉表
 
-透视表（pivot table）是各种电子表格程序和其他数据分析软件中一种常见的数据汇总工具。它根据一个或多个键对数据进行聚合，并根据行和列上的分组键将数据分配到各个矩形区域中。在Python和pandas中，可以通过本章所介绍的groupby功能以及（能够利用层次化索引的）重塑运算制作透视表。DataFrame有一个pivot_table方法，此外还有一个顶级的pandas.pivot_table函数。除能为groupby提供便利之外，pivot_table还可以添加分项小计，也叫做margins。
+透视表（pivot table）是各种电子表格程序和其他数据分析软件中一种常见的数据汇总工具。它根据一个或多个键对数据进行聚合，并根据行和列上的分组键将数据分配到各个矩形区域中。在Python和pandas中，可以通过本章所介绍的groupby功能以及（能够利用层次化索引的）重塑运算制作透视表。DataFrame有一个pivot\_table方法，此外还有一个顶级的pandas.pivot\_table函数。除能为groupby提供便利之外，pivot\_table还可以添加分项小计，也叫做margins。
 
-回到小费数据集，假设我想要根据day和smoker计算分组平均数（pivot_table的默认聚合类型），并将day和smoker放到行上：
+回到小费数据集，假设我想要根据day和smoker计算分组平均数（pivot\_table的默认聚合类型），并将day和smoker放到行上：
+
 ```python
 In [130]: tips.pivot_table(index=['day', 'smoker'])
 Out[130]: 
@@ -1182,7 +1245,8 @@ Thur No      2.488889  2.673778  0.160298   17.113111
      Yes     2.352941  3.030000  0.163863   19.190588
 ```
 
-可以用groupby直接来做。现在，假设我们只想聚合tip_pct和size，而且想根据time进行分组。我将smoker放到列上，把day放到行上：
+可以用groupby直接来做。现在，假设我们只想聚合tip\_pct和size，而且想根据time进行分组。我将smoker放到列上，把day放到行上：
+
 ```python
 In [131]: tips.pivot_table(['tip_pct', 'size'], index=['time', 'day'],
    .....:                  columns='smoker')
@@ -1199,6 +1263,7 @@ Lunch  Fri   3.000000  1.833333  0.187735  0.188937
 ```
 
 还可以对这个表作进一步的处理，传入margins=True添加分项小计。这将会添加标签为All的行和列，其值对应于单个等级中所有数据的分组统计：
+
 ```python
 In [132]: tips.pivot_table(['tip_pct', 'size'], index=['time', 'day'],
    .....:                  columns='smoker', margins=True)
@@ -1218,6 +1283,7 @@ All          2.668874  2.408602  2.569672  0.159328  0.163196  0.160803
 这里，All值为平均数：不单独考虑烟民与非烟民（All列），不单独考虑行分组两个级别中的任何单项（All行）。
 
 要使用其他的聚合函数，将其传给aggfunc即可。例如，使用count或len可以得到有关分组大小的交叉表（计数或频率）：
+
 ```python
 In [133]: tips.pivot_table('tip_pct', index=['time', 'smoker'], columns='day',
    .....:                  aggfunc=len, margins=True)
@@ -1231,7 +1297,8 @@ Lunch  No       1.0   NaN   NaN  44.0   45.0
 All            19.0  87.0  76.0  62.0  244.0
 ```
 
-如果存在空的组合（也就是NA），你可能会希望设置一个fill_value：
+如果存在空的组合（也就是NA），你可能会希望设置一个fill\_value：
+
 ```python
 In [134]: tips.pivot_table('tip_pct', index=['time', 'size', 'smoker'],
    .....:                  columns='day', aggfunc='mean', fill_value=0)
@@ -1262,13 +1329,14 @@ Lunch  1    No      0.000000  0.000000  0.000000  0.181728
 [21 rows x 4 columns]
 ```
 
-pivot_table的参数说明请参见表10-2。
+pivot\_table的参数说明请参见表10-2。
 
-![表10-2 pivot_table的选项](http://upload-images.jianshu.io/upload_images/7178691-c9e01844c4803a42.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![&#x8868;10-2 pivot\_table&#x7684;&#x9009;&#x9879;](http://upload-images.jianshu.io/upload_images/7178691-c9e01844c4803a42.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-## 交叉表：crosstab
+### 交叉表：crosstab
 
 交叉表（cross-tabulation，简称crosstab）是一种用于计算分组频率的特殊透视表。看下面的例子：
+
 ```python
 In [138]: data
 Out[138]:
@@ -1285,7 +1353,8 @@ Out[138]:
 9      10         USA  Right-handed
 ```
 
-作为调查分析的一部分，我们可能想要根据国籍和用手习惯对这段数据进行统计汇总。虽然可以用pivot_table实现该功能，但是pandas.crosstab函数会更方便：
+作为调查分析的一部分，我们可能想要根据国籍和用手习惯对这段数据进行统计汇总。虽然可以用pivot\_table实现该功能，但是pandas.crosstab函数会更方便：
+
 ```python
 In [139]: pd.crosstab(data.Nationality, data.Handedness, margins=True)
 Out[139]: 
@@ -1297,6 +1366,7 @@ All                    3             7   10
 ```
 
 crosstab的前两个参数可以是数组或Series，或是数组列表。就像小费数据：
+
 ```python
 In [140]: pd.crosstab([tips.time, tips.day], tips.smoker, margins=True)
 Out[140]: 
@@ -1311,8 +1381,9 @@ Lunch  Fri     1    6    7
 All          151   93  244
 ```
 
-# 10.5 总结
+## 10.5 总结
 
 掌握pandas数据分组工具既有助于数据清理，也有助于建模或统计分析工作。在第14章，我们会看几个例子，对真实数据使用groupby。
 
 在下一章，我们将关注时间序列数据。
+

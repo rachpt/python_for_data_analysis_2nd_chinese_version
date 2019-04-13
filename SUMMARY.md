@@ -1,0 +1,20 @@
+# Table of contents
+
+* [README](README.md)
+* [第1章 准备工作](di-01-zhang-zhun-bei-gong-zuo.md)
+* [第2章 Python语法基础，IPython和Jupyter Notebooks](di-02-zhang-python-yu-fa-ji-chu-ipython-he-jupyter-notebooks.md)
+* [第03章 Python的数据结构、函数和文件](di-03-zhang-python-de-shu-ju-jie-gou-han-shu-he-wen-jian.md)
+* [第04章 NumPy基础：数组和矢量计算](di-04-zhang-numpy-ji-chu-shu-zu-he-shi-liang-ji-suan.md)
+* [第05章 pandas入门](di-05-zhang-pandas-ru-men.md)
+* [第06章 数据加载、存储与文件格式](di-06-zhang-shu-ju-jia-zai-cun-chu-yu-wen-jian-ge-shi.md)
+* [第07章 数据清洗和准备](di-07-zhang-shu-ju-qing-xi-he-zhun-bei.md)
+* [第08章 数据规整：聚合、合并和重塑](di-08-zhang-shu-ju-gui-zheng-ju-he-he-bing-he-zhong-su.md)
+* [第09章 绘图和可视化](di-09-zhang-hui-tu-he-ke-shi-hua.md)
+* [第11章 时间序列](di-11-zhang-shi-jian-xu-lie.md)
+* [第12章 pandas高级应用](di-12-zhang-pandas-gao-ji-ying-yong.md)
+* [第10章 数据聚合与分组运算](di-10-zhang-shu-ju-ju-he-yu-fen-zu-yun-suan.md)
+* [第13章 Python建模库介绍](di-13-zhang-python-jian-mo-ku-jie-shao.md)
+* [第14章 数据分析案例](di-14-zhang-shu-ju-fen-xi-an-li.md)
+* [附录A NumPy高级应用](fu-luanumpy-gao-ji-ying-yong.md)
+* [附录B 更多关于IPython的内容（完）](fu-lub-geng-duo-guan-yu-ipython-de-nei-rong-wan.md)
+

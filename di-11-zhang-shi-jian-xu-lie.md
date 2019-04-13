@@ -1,17 +1,19 @@
+# 第11章 时间序列
+
 时间序列（time series）数据是一种重要的结构化数据形式，应用于多个领域，包括金融学、经济学、生态学、神经科学、物理学等。在多个时间点观察或测量到的任何事物都可以形成一段时间序列。很多时间序列是固定频率的，也就是说，数据点是根据某种规律定期出现的（比如每15秒、每5分钟、每月出现一次）。时间序列也可以是不定期的，没有固定的时间单位或单位之间的偏移量。时间序列数据的意义取决于具体的应用场景，主要有以下几种：
 
-- 时间戳（timestamp），特定的时刻。
-- 固定时期（period），如2007年1月或2010年全年。
-- 时间间隔（interval），由起始和结束时间戳表示。时期（period）可以被看做间隔（interval）的特例。
-- 实验或过程时间，每个时间点都是相对于特定起始时间的一个度量。例如，从放入烤箱时起，每秒钟饼干的直径。
+* 时间戳（timestamp），特定的时刻。
+* 固定时期（period），如2007年1月或2010年全年。
+* 时间间隔（interval），由起始和结束时间戳表示。时期（period）可以被看做间隔（interval）的特例。
+* 实验或过程时间，每个时间点都是相对于特定起始时间的一个度量。例如，从放入烤箱时起，每秒钟饼干的直径。
 
 本章主要讲解前3种时间序列。许多技术都可用于处理实验型时间序列，其索引可能是一个整数或浮点数（表示从实验开始算起已经过去的时间）。最简单也最常见的时间序列都是用时间戳进行索引的。
 
->提示：pandas也支持基于timedeltas的指数，它可以有效代表实验或经过的时间。这本书不涉及timedelta指数，但你可以学习pandas的文档（http://pandas.pydata.org/）。
+> 提示：pandas也支持基于timedeltas的指数，它可以有效代表实验或经过的时间。这本书不涉及timedelta指数，但你可以学习pandas的文档（[http://pandas.pydata.org/）。](http://pandas.pydata.org/）。)
 
 pandas提供了许多内置的时间序列处理工具和数据算法。因此，你可以高效处理非常大的时间序列，轻松地进行切片/切块、聚合、对定期/不定期的时间序列进行重采样等。有些工具特别适合金融和经济应用，你当然也可以用它们来分析服务器日志数据。
 
-# 11.1 日期和时间数据类型及工具
+## 11.1 日期和时间数据类型及工具
 
 Python标准库包含用于日期（date）和时间（time）数据的数据类型，而且还有日历方面的功能。我们主要会用到datetime、time以及calendar模块。datetime.datetime（也可以简写为datetime）是用得最多的数据类型：
 
@@ -60,13 +62,14 @@ datetime模块中的数据类型参见表10-1。虽然本章主要讲的是panda
 
 表11-1 datetime模块中的数据类型
 
-![](http://upload-images.jianshu.io/upload_images/7178691-4af261a305a70aeb.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](http://upload-images.jianshu.io/upload_images/7178691-4af261a305a70aeb.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-tzinfo  存储时区信息的基本类型
+tzinfo 存储时区信息的基本类型
 
-## 字符串和datetime的相互转换
+### 字符串和datetime的相互转换
 
 利用str或strftime方法（传入一个格式化字符串），datetime对象和pandas的Timestamp对象（稍后就会介绍）可以被格式化为字符串：
+
 ```python
 In [22]: stamp = datetime(2011, 1, 3)
 
@@ -81,11 +84,12 @@ Out[24]: '2011-01-03'
 
 表11-2 datetime格式定义（兼容ISO C89）
 
-![](http://upload-images.jianshu.io/upload_images/7178691-50c751823754df58.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](http://upload-images.jianshu.io/upload_images/7178691-50c751823754df58.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-![](http://upload-images.jianshu.io/upload_images/7178691-de0181e1f6b45eaf.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](http://upload-images.jianshu.io/upload_images/7178691-de0181e1f6b45eaf.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
 datetime.strptime可以用这些格式化编码将字符串转换为日期：
+
 ```python
 In [25]: value = '2011-01-03'
 
@@ -101,12 +105,14 @@ Out[28]:
 ```
 
 datetime.strptime是通过已知格式进行日期解析的最佳方式。但是每次都要编写格式定义是很麻烦的事情，尤其是对于一些常见的日期格式。这种情况下，你可以用dateutil这个第三方包中的parser.parse方法（pandas中已经自动安装好了）：
+
 ```python
 In [29]: from dateutil.parser import parse
 
 In [30]: parse('2011-01-03')
 Out[30]: datetime.datetime(2011, 1, 3, 0, 0)
 ```
+
 dateutil可以解析几乎所有人类能够理解的日期表示形式：
 
 ```python
@@ -121,7 +127,7 @@ In [32]: parse('6/12/2011', dayfirst=True)
 Out[32]: datetime.datetime(2011, 12, 6, 0, 0)
 ```
 
-pandas通常是用于处理成组日期的，不管这些日期是DataFrame的轴索引还是列。to_datetime方法可以解析多种不同的日期表示形式。对标准日期格式（如ISO8601）的解析非常快：
+pandas通常是用于处理成组日期的，不管这些日期是DataFrame的轴索引还是列。to\_datetime方法可以解析多种不同的日期表示形式。对标准日期格式（如ISO8601）的解析非常快：
 
 ```python
 In [33]: datestrs = ['2011-07-06 12:00:00', '2011-08-06 00:00:00']
@@ -132,6 +138,7 @@ etime64[ns]', freq=None)
 ```
 
 它还可以处理缺失值（None、空字符串等）：
+
 ```python
 In [35]: idx = pd.to_datetime(datestrs + [None])
 
@@ -148,17 +155,18 @@ Out[38]: array([False, False,  True], dtype=bool)
 
 NaT（Not a Time）是pandas中时间戳数据的null值。
 
->注意：dateutil.parser是一个实用但不完美的工具。比如说，它会把一些原本不是日期的字符串认作是日期（比如"42"会被解析为2042年的今天）。
+> 注意：dateutil.parser是一个实用但不完美的工具。比如说，它会把一些原本不是日期的字符串认作是日期（比如"42"会被解析为2042年的今天）。
 
 datetime对象还有一些特定于当前环境（位于不同国家或使用不同语言的系统）的格式化选项。例如，德语或法语系统所用的月份简写就与英语系统所用的不同。表11-3进行了总结。
 
 表11-3 特定于当前环境的日期格式
 
-![](http://upload-images.jianshu.io/upload_images/7178691-cf0119398273e2b0.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](http://upload-images.jianshu.io/upload_images/7178691-cf0119398273e2b0.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-# 11.2 时间序列基础
+## 11.2 时间序列基础
 
 pandas最基本的时间序列类型就是以时间戳（通常以Python字符串或datatime对象表示）为索引的Series：
+
 ```python
 In [39]: from datetime import datetime
 
@@ -180,6 +188,7 @@ dtype: float64
 ```
 
 这些datetime对象实际上是被放在一个DatetimeIndex中的：
+
 ```python
 In [43]: ts.index
 Out[43]: 
@@ -189,6 +198,7 @@ DatetimeIndex(['2011-01-02', '2011-01-05', '2011-01-07', '2011-01-08',
 ```
 
 跟其他Series一样，不同索引的时间序列之间的算术运算会自动按日期对齐：
+
 ```python
 In [44]: ts + ts[::2]
 Out[44]: 
@@ -201,15 +211,17 @@ Out[44]:
 dtype: float64
 ```
 
-ts[::2] 是每隔两个取一个。
+ts\[::2\] 是每隔两个取一个。
 
 pandas用NumPy的datetime64数据类型以纳秒形式存储时间戳：
+
 ```python
 In [45]: ts.index.dtype
 Out[45]: dtype('<M8[ns]')
 ```
 
 DatetimeIndex中的各个标量值是pandas的Timestamp对象：
+
 ```python
 In [46]: stamp = ts.index[0]
 
@@ -219,9 +231,10 @@ Out[47]: Timestamp('2011-01-02 00:00:00')
 
 只要有需要，TimeStamp可以随时自动转换为datetime对象。此外，它还可以存储频率信息（如果有的话），且知道如何执行时区转换以及其他操作。稍后将对此进行详细讲解。
 
-## 索引、选取、子集构造
+### 索引、选取、子集构造
 
 当你根据标签索引选取数据时，时间序列和其它的pandas.Series很像：
+
 ```python
 In [48]: stamp = ts.index[2]
 
@@ -230,6 +243,7 @@ Out[49]: -0.51943871505673811
 ```
 
 还有一种更为方便的用法：传入一个可以被解释为日期的字符串：
+
 ```python
 In [50]: ts['1/10/2011']
 Out[50]: 1.9657805725027142
@@ -239,6 +253,7 @@ Out[51]: 1.9657805725027142
 ```
 
 对于较长的时间序列，只需传入“年”或“年月”即可轻松选取数据的切片：
+
 ```python
 In [52]: longer_ts = pd.Series(np.random.randn(1000),
    ....:                       index=pd.date_range('1/1/2000', periods=1000))
@@ -295,6 +310,7 @@ Freq: D, Length: 365, dtype: float64
 ```
 
 这里，字符串“2001”被解释成年，并根据它选取时间区间。指定月也同样奏效：
+
 ```python
 In [55]: longer_ts['2001-05']
 Out[55]: 
@@ -323,6 +339,7 @@ Freq: D, Length: 31, dtype: float64
 ```
 
 datetime对象也可以进行切片：
+
 ```python
 In [56]: ts[datetime(2011, 1, 7):]
 Out[56]: 
@@ -334,6 +351,7 @@ dtype: float64
 ```
 
 由于大部分时间序列数据都是按照时间先后排序的，因此你也可以用不存在于该时间序列中的时间戳对其进行切片（即范围查询）：
+
 ```python
 In [57]: ts
 Out[57]: 
@@ -358,6 +376,7 @@ dtype: float64
 这意味着，没有数据被复制，对切片进行修改会反映到原始数据上。
 
 此外，还有一个等价的实例方法也可以截取两个日期之间TimeSeries：
+
 ```python
 In [59]: ts.truncate(after='1/9/2011')
 Out[59]: 
@@ -369,6 +388,7 @@ dtype: float64
 ```
 
 面这些操作对DataFrame也有效。例如，对DataFrame的行进行索引：
+
 ```python
 In [60]: dates = pd.date_range('1/1/2000', periods=100, freq='W-WED')
 
@@ -387,9 +407,10 @@ Out[62]:
 2001-05-30  3.260383  0.963301  1.201206 -1.852001
 ```
 
-## 带有重复索引的时间序列
+### 带有重复索引的时间序列
 
 在某些应用场景中，可能会存在多个观测数据落在同一个时间点上的情况。下面就是一个例子：
+
 ```python
 In [63]: dates = pd.DatetimeIndex(['1/1/2000', '1/2/2000', '1/2/2000',
    ....:                           '1/2/2000', '1/3/2000'])
@@ -405,13 +426,15 @@ Out[65]:
 dtype: int64
 ```
 
-通过检查索引的is_unique属性，我们就可以知道它是不是唯一的：
+通过检查索引的is\_unique属性，我们就可以知道它是不是唯一的：
+
 ```python
 In [66]: dup_ts.index.is_unique
 Out[66]: False
 ```
 
 对这个时间序列进行索引，要么产生标量值，要么产生切片，具体要看所选的时间点是否重复：
+
 ```python
 In [67]: dup_ts['1/3/2000']  # not duplicated
 Out[67]: 4
@@ -425,6 +448,7 @@ dtype: int64
 ```
 
 假设你想要对具有非唯一时间戳的数据进行聚合。一个办法是使用groupby，并传入level=0：
+
 ```python
 In [69]: grouped = dup_ts.groupby(level=0)
 
@@ -443,9 +467,10 @@ Out[71]:
 dtype: int64
 ```
 
-# 11.3 日期的范围、频率以及移动
+## 11.3 日期的范围、频率以及移动
 
 pandas中的原生时间序列一般被认为是不规则的，也就是说，它们没有固定的频率。对于大部分应用程序而言，这是无所谓的。但是，它常常需要以某种相对固定的频率进行分析，比如每日、每月、每15分钟等（这样自然会在时间序列中引入缺失值）。幸运的是，pandas有一整套标准时间序列频率以及用于重采样、频率推断、生成固定频率日期范围的工具。例如，我们可以将之前那个时间序列转换为一个具有固定频率（每日）的时间序列，只需调用resample即可：
+
 ```python
 In [72]: ts
 Out[72]: 
@@ -464,9 +489,10 @@ In [73]: resampler = ts.resample('D')
 
 频率的转换（或重采样）是一个比较大的主题，稍后将专门用一节来进行讨论（11.6小节）。这里，我将告诉你如何使用基本的频率和它的倍数。
 
-## 生成日期范围
+### 生成日期范围
 
-虽然我之前用的时候没有明说，但你可能已经猜到pandas.date_range可用于根据指定的频率生成指定长度的DatetimeIndex：
+虽然我之前用的时候没有明说，但你可能已经猜到pandas.date\_range可用于根据指定的频率生成指定长度的DatetimeIndex：
+
 ```python
 In [74]: index = pd.date_range('2012-04-01', '2012-06-01')
 
@@ -491,7 +517,8 @@ DatetimeIndex(['2012-04-01', '2012-04-02', '2012-04-03', '2012-04-04',
               dtype='datetime64[ns]', freq='D')
 ```
 
-默认情况下，date_range会产生按天计算的时间点。如果只传入起始或结束日期，那就还得传入一个表示一段时间的数字：
+默认情况下，date\_range会产生按天计算的时间点。如果只传入起始或结束日期，那就还得传入一个表示一段时间的数字：
+
 ```python
 In [76]: pd.date_range(start='2012-04-01', periods=20)
 Out[76]: 
@@ -513,6 +540,7 @@ DatetimeIndex(['2012-05-13', '2012-05-14', '2012-05-15', '2012-05-16',
 ```
 
 起始和结束日期定义了日期索引的严格边界。例如，如果你想要生成一个由每月最后一个工作日组成的日期索引，可以传入"BM"频率（表示business end of month，表11-4是频率列表），这样就只会包含时间间隔内（或刚好在边界上的）符合频率要求的日期：
+
 ```python
 In [78]: pd.date_range('2000-01-01', '2000-12-01', freq='BM')
 Out[78]: 
@@ -524,13 +552,14 @@ DatetimeIndex(['2000-01-31', '2000-02-29', '2000-03-31', '2000-04-28',
 
 表11-4 基本的时间序列频率（不完整）
 
-![](http://upload-images.jianshu.io/upload_images/7178691-c8614ddbd10793ca.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](http://upload-images.jianshu.io/upload_images/7178691-c8614ddbd10793ca.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-![](http://upload-images.jianshu.io/upload_images/7178691-8da46ba96544b071.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](http://upload-images.jianshu.io/upload_images/7178691-8da46ba96544b071.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-![](http://upload-images.jianshu.io/upload_images/7178691-3ca410609195edc4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](http://upload-images.jianshu.io/upload_images/7178691-3ca410609195edc4.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-date_range默认会保留起始和结束时间戳的时间信息（如果有的话）：
+date\_range默认会保留起始和结束时间戳的时间信息（如果有的话）：
+
 ```python
 In [79]: pd.date_range('2012-05-02 12:56:31', periods=5)
 Out[79]: 
@@ -541,6 +570,7 @@ DatetimeIndex(['2012-05-02 12:56:31', '2012-05-03 12:56:31',
 ```
 
 有时，虽然起始和结束日期带有时间信息，但你希望产生一组被规范化（normalize）到午夜的时间戳。normalize选项即可实现该功能：
+
 ```python
 In [80]: pd.date_range('2012-05-02 12:56:31', periods=5, normalize=True)
 Out[80]: 
@@ -549,9 +579,10 @@ DatetimeIndex(['2012-05-02', '2012-05-03', '2012-05-04', '2012-05-05',
               dtype='datetime64[ns]', freq='D')
 ```
 
-## 频率和日期偏移量
+### 频率和日期偏移量
 
 pandas中的频率是由一个基础频率（base frequency）和一个乘数组成的。基础频率通常以一个字符串别名表示，比如"M"表示每月，"H"表示每小时。对于每个基础频率，都有一个被称为日期偏移量（date offset）的对象与之对应。例如，按小时计算的频率可以用Hour类表示：
+
 ```python
 In [81]: from pandas.tseries.offsets import Hour, Minute
 
@@ -562,6 +593,7 @@ Out[83]: <Hour>
 ```
 
 传入一个整数即可定义偏移量的倍数：
+
 ```python
 In [84]: four_hours = Hour(4)
 
@@ -570,6 +602,7 @@ Out[85]: <4 * Hours>
 ```
 
 一般来说，无需明确创建这样的对象，只需使用诸如"H"或"4H"这样的字符串别名即可。在基础频率前面放上一个整数即可创建倍数：
+
 ```python
 In [86]: pd.date_range('2000-01-01', '2000-01-03 23:59', freq='4h')
 Out[86]: 
@@ -586,12 +619,14 @@ DatetimeIndex(['2000-01-01 00:00:00', '2000-01-01 04:00:00',
 ```
 
 大部分偏移量对象都可通过加法进行连接：
+
 ```python
 In [87]: Hour(2) + Minute(30)
 Out[87]: <150 * Minutes>
 ```
 
 同理，你也可以传入频率字符串（如"2h30min"），这种字符串可以被高效地解析为等效的表达式：
+
 ```python
 In [88]: pd.date_range('2000-01-01', periods=10, freq='1h30min')
 Out[88]: 
@@ -607,19 +642,20 @@ DatetimeIndex(['2000-01-01 00:00:00', '2000-01-01 01:30:00',
 
 表11-4列出了pandas中的频率代码和日期偏移量类。
 
->笔记：用户可以根据实际需求自定义一些频率类以便提供pandas所没有的日期逻辑，但具体的细节超出了本书的范围。             
+> 笔记：用户可以根据实际需求自定义一些频率类以便提供pandas所没有的日期逻辑，但具体的细节超出了本书的范围。
 
 表11-4 时间序列的基础频率
 
-![](http://upload-images.jianshu.io/upload_images/7178691-ff139312cd972204.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](http://upload-images.jianshu.io/upload_images/7178691-ff139312cd972204.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-![](http://upload-images.jianshu.io/upload_images/7178691-adfa57a998c0296e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](http://upload-images.jianshu.io/upload_images/7178691-adfa57a998c0296e.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-![](http://upload-images.jianshu.io/upload_images/7178691-d09e577a10d0e6eb.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![](http://upload-images.jianshu.io/upload_images/7178691-d09e577a10d0e6eb.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-## WOM日期
+### WOM日期
 
 WOM（Week Of Month）是一种非常实用的频率类，它以WOM开头。它使你能获得诸如“每月第3个星期五”之类的日期：
+
 ```python
 In [89]: rng = pd.date_range('2012-01-01', '2012-09-01', freq='WOM-3FRI')
 
@@ -635,9 +671,10 @@ Out[90]:
  Timestamp('2012-08-17 00:00:00', freq='WOM-3FRI')]
 ```
 
-## 移动（超前和滞后）数据
+### 移动（超前和滞后）数据
 
 移动（shifting）指的是沿着时间轴将数据前移或后移。Series和DataFrame都有一个shift方法用于执行单纯的前移或后移操作，保持索引不变：
+
 ```python
 In [91]: ts = pd.Series(np.random.randn(4),
    ....:                index=pd.date_range('1/1/2000', periods=4, freq='M'))
@@ -670,11 +707,13 @@ Freq: M, dtype: float64
 当我们这样进行移动时，就会在时间序列的前面或后面产生缺失数据。
 
 shift通常用于计算一个时间序列或多个时间序列（如DataFrame的列）中的百分比变化。可以这样表达：
+
 ```python
 ts / ts.shift(1) - 1
 ```
 
 由于单纯的移位操作不会修改索引，所以部分数据会被丢弃。因此，如果频率已知，则可以将其传给shift以便实现对时间戳进行位移而不是对数据进行简单位移：
+
 ```python
 In [95]: ts.shift(2, freq='M')
 Out[95]: 
@@ -686,6 +725,7 @@ Freq: M, dtype: float64
 ```
 
 这里还可以使用其他频率，于是你就能非常灵活地对数据进行超前和滞后处理了：
+
 ```python
 In [96]: ts.shift(3, freq='D')
 Out[96]: 
@@ -704,9 +744,10 @@ Out[97]:
 Freq: M, dtype: float64
 ```
 
-## 通过偏移量对日期进行位移
+### 通过偏移量对日期进行位移
 
 pandas的日期偏移量还可以用在datetime或Timestamp对象上：
+
 ```python
 In [98]: from pandas.tseries.offsets import Day, MonthEnd
 
@@ -717,6 +758,7 @@ Out[100]: Timestamp('2011-11-20 00:00:00')
 ```
 
 如果加的是锚点偏移量（比如MonthEnd），第一次增量会将原日期向前滚动到符合频率规则的下一个日期：
+
 ```python
 In [101]: now + MonthEnd()
 Out[101]: Timestamp('2011-11-30 00:00:00')
@@ -726,6 +768,7 @@ Out[102]: Timestamp('2011-12-31 00:00:00')
 ```
 
 通过锚点偏移量的rollforward和rollback方法，可明确地将日期向前或向后“滚动”：
+
 ```python
 In [103]: offset = MonthEnd()
 
@@ -737,6 +780,7 @@ Out[105]: Timestamp('2011-10-31 00:00:00')
 ```
 
 日期偏移量还有一个巧妙的用法，即结合groupby使用这两个“滚动”方法：
+
 ```python
 In [106]: ts = pd.Series(np.random.randn(20),
    .....:                index=pd.date_range('1/15/2000', periods=20, freq='4d'))
@@ -774,6 +818,7 @@ dtype: float64
 ```
 
 当然，更简单、更快速地实现该功能的办法是使用resample（11.6小节将对此进行详细介绍）：
+
 ```python
 In [109]: ts.resample('M').mean()
 Out[109]: 
@@ -783,13 +828,14 @@ Out[109]:
 Freq: M, dtype: float64
 ```
 
-# 11.4 时区处理
+## 11.4 时区处理
 
 时间序列处理工作中最让人不爽的就是对时区的处理。许多人都选择以协调世界时（UTC，它是格林尼治标准时间（Greenwich Mean Time）的接替者，目前已经是国际标准了）来处理时间序列。时区是以UTC偏移量的形式表示的。例如，夏令时期间，纽约比UTC慢4小时，而在全年其他时间则比UTC慢5小时。
 
 在Python中，时区信息来自第三方库pytz，它使Python可以使用Olson数据库（汇编了世界时区信息）。这对历史数据非常重要，这是因为由于各地政府的各种突发奇想，夏令时转变日期（甚至UTC偏移量）已经发生过多次改变了。就拿美国来说，DST转变时间自1900年以来就改变过多次！
 
 有关pytz库的更多信息，请查阅其文档。就本书而言，由于pandas包装了pytz的功能，因此你可以不用记忆其API，只要记得时区的名称即可。时区名可以在shell中看到，也可以通过文档查看：
+
 ```python
 In [110]: import pytz
 
@@ -798,6 +844,7 @@ Out[111]: ['US/Eastern', 'US/Hawaii', 'US/Mountain', 'US/Pacific', 'UTC']
 ```
 
 要从pytz中获取时区对象，使用pytz.timezone即可：
+
 ```python
 In [112]: tz = pytz.timezone('America/New_York')
 
@@ -807,9 +854,10 @@ Out[113]: <DstTzInfo 'America/New_York' LMT-1 day, 19:04:00 STD>
 
 pandas中的方法既可以接受时区名也可以接受这些对象。
 
-# 时区本地化和转换
+## 时区本地化和转换
 
 默认情况下，pandas中的时间序列是单纯（naive）的时区。看看下面这个时间序列：
+
 ```python
 In [114]: rng = pd.date_range('3/9/2012 9:30', periods=6, freq='D')
 
@@ -827,12 +875,14 @@ Freq: D, dtype: float64
 ```
 
 其索引的tz字段为None：
+
 ```python
 In [117]: print(ts.index.tz)
 None
 ```
 
 可以用时区集生成日期范围：
+
 ```python
 In [118]: pd.date_range('3/9/2012 9:30', periods=10, freq='D', tz='UTC')
 Out[118]: 
@@ -844,7 +894,8 @@ DatetimeIndex(['2012-03-09 09:30:00+00:00', '2012-03-10 09:30:00+00:00',
               dtype='datetime64[ns, UTC]', freq='D')
 ```
 
-从单纯到本地化的转换是通过tz_localize方法处理的：
+从单纯到本地化的转换是通过tz\_localize方法处理的：
+
 ```python
 In [119]: ts
 Out[119]: 
@@ -876,7 +927,8 @@ DatetimeIndex(['2012-03-09 09:30:00+00:00', '2012-03-10 09:30:00+00:00',
               dtype='datetime64[ns, UTC]', freq='D')
 ```
 
-一旦时间序列被本地化到某个特定时区，就可以用tz_convert将其转换到别的时区了：
+一旦时间序列被本地化到某个特定时区，就可以用tz\_convert将其转换到别的时区了：
+
 ```python
 In [123]: ts_utc.tz_convert('America/New_York')
 Out[123]: 
@@ -890,6 +942,7 @@ Freq: D, dtype: float64
 ```
 
 对于上面这种时间序列（它跨越了美国东部时区的夏令时转变期），我们可以将其本地化到EST，然后转换为UTC或柏林时间：
+
 ```python
 In [124]: ts_eastern = ts.tz_localize('America/New_York')
 
@@ -914,7 +967,8 @@ Out[126]:
 Freq: D, dtype: float64
 ```
 
-tz_localize和tz_convert也是DatetimeIndex的实例方法：
+tz\_localize和tz\_convert也是DatetimeIndex的实例方法：
+
 ```python
 In [127]: ts.index.tz_localize('Asia/Shanghai')
 Out[127]: 
@@ -924,11 +978,12 @@ DatetimeIndex(['2012-03-09 09:30:00+08:00', '2012-03-10 09:30:00+08:00',
               dtype='datetime64[ns, Asia/Shanghai]', freq='D')
 ```
 
->注意：对单纯时间戳的本地化操作还会检查夏令时转变期附近容易混淆或不存在的时间。
+> 注意：对单纯时间戳的本地化操作还会检查夏令时转变期附近容易混淆或不存在的时间。
 
-## 操作时区意识型Timestamp对象
+### 操作时区意识型Timestamp对象
 
 跟时间序列和日期范围差不多，独立的Timestamp对象也能被从单纯型（naive）本地化为时区意识型（time zone-aware），并从一个时区转换到另一个时区：
+
 ```python
 In [128]: stamp = pd.Timestamp('2011-03-12 04:00')
 
@@ -939,6 +994,7 @@ Out[130]: Timestamp('2011-03-11 23:00:00-0500', tz='America/New_York')
 ```
 
 在创建Timestamp时，还可以传入一个时区信息：
+
 ```python
 In [131]: stamp_moscow = pd.Timestamp('2011-03-12 04:00', tz='Europe/Moscow')
 
@@ -947,6 +1003,7 @@ Out[132]: Timestamp('2011-03-12 04:00:00+0300', tz='Europe/Moscow')
 ```
 
 时区意识型Timestamp对象在内部保存了一个UTC时间戳值（自UNIX纪元（1970年1月1日）算起的纳秒数）。这个UTC值在时区转换过程中是不会发生变化的：
+
 ```python
 In [133]: stamp_utc.value
 Out[133]: 1299902400000000000
@@ -956,6 +1013,7 @@ Out[134]: 1299902400000000000
 ```
 
 当使用pandas的DateOffset对象执行时间算术运算时，运算过程会自动关注是否存在夏令时转变期。这里，我们创建了在DST转变之前的时间戳。首先，来看夏令时转变前的30分钟：
+
 ```python
 In [135]: from pandas.tseries.offsets import Hour
 
@@ -969,6 +1027,7 @@ Out[138]: Timestamp('2012-03-12 02:30:00-0400', tz='US/Eastern')
 ```
 
 然后，夏令时转变前90分钟：
+
 ```python
 In [139]: stamp = pd.Timestamp('2012-11-04 00:30', tz='US/Eastern')
 
@@ -979,9 +1038,10 @@ In [141]: stamp + 2 * Hour()
 Out[141]: Timestamp('2012-11-04 01:30:00-0500', tz='US/Eastern')
 ```
 
-## 不同时区之间的运算
+### 不同时区之间的运算
 
 如果两个时间序列的时区不同，在将它们合并到一起时，最终结果就会是UTC。由于时间戳其实是以UTC存储的，所以这是一个很简单的运算，并不需要发生任何转换：
+
 ```python
 In [142]: rng = pd.date_range('3/7/2012 9:30', periods=10, freq='B')
 
@@ -1016,9 +1076,10 @@ DatetimeIndex(['2012-03-07 09:30:00+00:00', '2012-03-08 09:30:00+00:00',
               dtype='datetime64[ns, UTC]', freq='B')
 ```
 
-# 11.5 时期及其算术运算
+## 11.5 时期及其算术运算
 
 时期（period）表示的是时间区间，比如数日、数月、数季、数年等。Period类所表示的就是这种数据类型，其构造函数需要用到一个字符串或整数，以及表11-4中的频率：
+
 ```python
 In [149]: p = pd.Period(2007, freq='A-DEC')
 
@@ -1027,6 +1088,7 @@ Out[150]: Period('2007', 'A-DEC')
 ```
 
 这里，这个Period对象表示的是从2007年1月1日到2007年12月31日之间的整段时间。只需对Period对象加上或减去一个整数即可达到根据其频率进行位移的效果：
+
 ```python
 In [151]: p + 5
 Out[151]: Period('2012', 'A-DEC')
@@ -1036,12 +1098,14 @@ Out[152]: Period('2005', 'A-DEC')
 ```
 
 如果两个Period对象拥有相同的频率，则它们的差就是它们之间的单位数量：
+
 ```python
 In [153]: pd.Period('2014', freq='A-DEC') - p
 Out[153]: 7
 ```
 
-period_range函数可用于创建规则的时期范围：
+period\_range函数可用于创建规则的时期范围：
+
 ```python
 In [154]: rng = pd.period_range('2000-01-01', '2000-06-30', freq='M')
 
@@ -1051,6 +1115,7 @@ Out[155]: PeriodIndex(['2000-01', '2000-02', '2000-03', '2000-04', '2000-05', '2
 ```
 
 PeriodIndex类保存了一组Period，它可以在任何pandas数据结构中被用作轴索引：
+
 ```python
 In [156]: pd.Series(np.random.randn(6), index=rng)
 Out[156]: 
@@ -1064,6 +1129,7 @@ Freq: M, dtype: float64
 ```
 
 如果你有一个字符串数组，你也可以使用PeriodIndex类：
+
 ```python
 In [157]: values = ['2001Q3', '2002Q2', '2003Q1']
 
@@ -1074,9 +1140,10 @@ Out[159]: PeriodIndex(['2001Q3', '2002Q2', '2003Q1'], dtype='period[Q-DEC]', fre
 ='Q-DEC')
 ```
 
-## 时期的频率转换
+### 时期的频率转换
 
 Period和PeriodIndex对象都可以通过其asfreq方法被转换成别的频率。假设我们有一个年度时期，希望将其转换为当年年初或年末的一个月度时期。该任务非常简单：
+
 ```python
 In [160]: p = pd.Period('2007', freq='A-DEC')
 
@@ -1090,7 +1157,8 @@ In [163]: p.asfreq('M', how='end')
 Out[163]: Period('2007-12', 'M')
 ```
 
-你可以将Period('2007','A-DEC')看做一个被划分为多个月度时期的时间段中的游标。图11-1对此进行了说明。对于一个不以12月结束的财政年度，月度子时期的归属情况就不一样了：
+你可以将Period\('2007','A-DEC'\)看做一个被划分为多个月度时期的时间段中的游标。图11-1对此进行了说明。对于一个不以12月结束的财政年度，月度子时期的归属情况就不一样了：
+
 ```python
 In [164]: p = pd.Period('2007', freq='A-JUN')
 
@@ -1104,9 +1172,10 @@ In [167]: p.asfreq('M', 'end')
 Out[167]: Period('2007-06', 'M')
 ```
 
-![图11-1 Period频率转换示例](http://upload-images.jianshu.io/upload_images/7178691-d201200d0e65676f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![&#x56FE;11-1 Period&#x9891;&#x7387;&#x8F6C;&#x6362;&#x793A;&#x4F8B;](http://upload-images.jianshu.io/upload_images/7178691-d201200d0e65676f.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
 在将高频率转换为低频率时，超时期（superperiod）是由子时期（subperiod）所属的位置决定的。例如，在A-JUN频率中，月份“2007年8月”实际上是属于周期“2008年”的：
+
 ```python
 In [168]: p = pd.Period('Aug-2007', 'M')
 
@@ -1115,6 +1184,7 @@ Out[169]: Period('2008', 'A-JUN')
 ```
 
 完整的PeriodIndex或TimeSeries的频率转换方式也是如此：
+
 ```python
 In [170]: rng = pd.period_range('2006', '2009', freq='A-DEC')
 
@@ -1138,6 +1208,7 @@ Freq: M, dtype: float64
 ```
 
 这里，根据年度时期的第一个月，每年的时期被取代为每月的时期。如果我们想要每年的最后一个工作日，我们可以使用“B”频率，并指明想要该时期的末尾：
+
 ```python
 In [174]: ts.asfreq('B', how='end')
 
@@ -1149,7 +1220,7 @@ Out[174]:
 Freq: B, dtype: float64
 ```
 
-## 按季度计算的时期频率
+### 按季度计算的时期频率
 
 季度型数据在会计、金融等领域中很常见。许多季度型数据都会涉及“财年末”的概念，通常是一年12个月中某月的最后一个日历日或工作日。就这一点来说，时期"2012Q4"根据财年末的不同会有不同的含义。pandas支持12种可能的季度型频率，即Q-JAN到Q-DEC：
 
@@ -1170,7 +1241,7 @@ In [178]: p.asfreq('D', 'end')
 Out[178]: Period('2012-01-31', 'D')
 ```
 
-![图11.2 不同季度型频率之间的转换](http://upload-images.jianshu.io/upload_images/7178691-e2e1d52c9766f6ff.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![&#x56FE;11.2 &#x4E0D;&#x540C;&#x5B63;&#x5EA6;&#x578B;&#x9891;&#x7387;&#x4E4B;&#x95F4;&#x7684;&#x8F6C;&#x6362;](http://upload-images.jianshu.io/upload_images/7178691-e2e1d52c9766f6ff.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
 因此，Period之间的算术运算会非常简单。例如，要获取该季度倒数第二个工作日下午4点的时间戳，你可以这样：
 
@@ -1184,7 +1255,8 @@ In [181]: p4pm.to_timestamp()
 Out[181]: Timestamp('2012-01-30 16:00:00')
 ```
 
-period_range可用于生成季度型范围。季度型范围的算术运算也跟上面是一样的：
+period\_range可用于生成季度型范围。季度型范围的算术运算也跟上面是一样的：
+
 ```python
 In [182]: rng = pd.period_range('2011Q3', '2012Q4', freq='Q-JAN')
 
@@ -1215,9 +1287,9 @@ Out[187]:
 dtype: int64
 ```
 
-## 将Timestamp转换为Period（及其反向过程）
+### 将Timestamp转换为Period（及其反向过程）
 
-通过使用to_period方法，可以将由时间戳索引的Series和DataFrame对象转换为以时期索引：
+通过使用to\_period方法，可以将由时间戳索引的Series和DataFrame对象转换为以时期索引：
 
 ```python
 In [188]: rng = pd.date_range('2000-01-01', periods=3, freq='M')
@@ -1242,6 +1314,7 @@ Freq: M, dtype: float64
 ```
 
 由于时期指的是非重叠时间区间，因此对于给定的频率，一个时间戳只能属于一个时期。新PeriodIndex的频率默认是从时间戳推断而来的，你也可以指定任何别的频率。结果中允许存在重复时期：
+
 ```python
 In [193]: rng = pd.date_range('1/29/2000', periods=6, freq='D')
 
@@ -1268,7 +1341,7 @@ Out[196]:
 Freq: M, dtype: float64
 ```
 
-要转换回时间戳，使用to_timestamp即可：
+要转换回时间戳，使用to\_timestamp即可：
 
 ```python
 In [197]: pts = ts2.to_period()
@@ -1294,9 +1367,10 @@ Out[199]:
 Freq: D, dtype: float64
 ```
 
-## 通过数组创建PeriodIndex
+### 通过数组创建PeriodIndex
 
 固定频率的数据集通常会将时间信息分开存放在多个列中。例如，在下面这个宏观经济数据集中，年度和季度就分别存放在不同的列中：
+
 ```python
 In [200]: data = pd.read_csv('examples/macrodata.csv')
 
@@ -1367,6 +1441,7 @@ Name: quarter, Length: 203, dtype: float64
 ```
 
 通过将这些数组以及一个频率传入PeriodIndex，就可以将它们合并成DataFrame的一个索引：
+
 ```python
 In [204]: index = pd.PeriodIndex(year=data.year, quarter=data.quarter,
    .....:                        freq='Q-DEC')
@@ -1408,11 +1483,12 @@ Out[207]:
 Freq: Q-DEC, Name: infl, Length: 203, dtype: float64
 ```
 
-# 11.6 重采样及频率转换
+## 11.6 重采样及频率转换
 
 重采样（resampling）指的是将时间序列从一个频率转换到另一个频率的处理过程。将高频率数据聚合到低频率称为降采样（downsampling），而将低频率数据转换到高频率则称为升采样（upsampling）。并不是所有的重采样都能被划分到这两个大类中。例如，将W-WED（每周三）转换为W-FRI既不是降采样也不是升采样。
 
 pandas对象都带有一个resample方法，它是各种频率转换工作的主力函数。resample有一个类似于groupby的API，调用resample可以分组数据，然后会调用一个聚合函数：
+
 ```python
 In [208]: rng = pd.date_range('2000-01-01', periods=100, freq='D')
 
@@ -1462,19 +1538,17 @@ Freq: M, dtype: float64
 
 resample是一个灵活高效的方法，可用于处理非常大的时间序列。我将通过一系列的示例说明其用法。表11-5总结它的一些选项。
 
-表11-5 resample方法的参数
-![](https://upload-images.jianshu.io/upload_images/7178691-b40a57086c904e83.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+表11-5 resample方法的参数 ![](https://upload-images.jianshu.io/upload_images/7178691-b40a57086c904e83.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-
-
-## 降采样
+### 降采样
 
 将数据聚合到规律的低频率是一件非常普通的时间序列处理任务。待聚合的数据不必拥有固定的频率，期望的频率会自动定义聚合的面元边界，这些面元用于将时间序列拆分为多个片段。例如，要转换到月度频率（'M'或'BM'），数据需要被划分到多个单月时间段中。各时间段都是半开放的。一个数据点只能属于一个时间段，所有时间段的并集必须能组成整个时间帧。在用resample对数据进行降采样时，需要考虑两样东西：
 
-- 各区间哪边是闭合的。
-- 如何标记各个聚合面元，用区间的开头还是末尾。
+* 各区间哪边是闭合的。
+* 如何标记各个聚合面元，用区间的开头还是末尾。
 
 为了说明，我们来看一些“1分钟”数据：
+
 ```python
 In [213]: rng = pd.date_range('2000-01-01', periods=12, freq='T')
 
@@ -1498,6 +1572,7 @@ Freq: T, dtype: int64
 ```
 
 假设你想要通过求和的方式将这些数据聚合到“5分钟”块中：
+
 ```python
 In [216]: ts.resample('5min', closed='right').sum()
 Out[216]: 
@@ -1509,6 +1584,7 @@ Freq: 5T, dtype: int64
 ```
 
 传入的频率将会以“5分钟”的增量定义面元边界。默认情况下，面元的右边界是包含的，因此00:00到00:05的区间中是包含00:05的。传入closed='left'会让区间以左边界闭合：
+
 ```python
 In [217]: ts.resample('5min', closed='right').sum()
 Out[217]: 
@@ -1520,6 +1596,7 @@ Freq: 5T, dtype: int64
 ```
 
 如你所见，最终的时间序列是以各面元右边界的时间戳进行标记的。传入label='right'即可用面元的邮编界对其进行标记：
+
 ```python
 In [218]: ts.resample('5min', closed='right', label='right').sum()
 Out[218]: 
@@ -1532,9 +1609,10 @@ Freq: 5T, dtype: int64
 
 图11-3说明了“1分钟”数据被转换为“5分钟”数据的处理过程。
 
-![图11-3 各种closed、label约定的“5分钟”重采样演示](http://upload-images.jianshu.io/upload_images/7178691-7a77f47844f2ee8c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![&#x56FE;11-3 &#x5404;&#x79CD;closed&#x3001;label&#x7EA6;&#x5B9A;&#x7684;&#x201C;5&#x5206;&#x949F;&#x201D;&#x91CD;&#x91C7;&#x6837;&#x6F14;&#x793A;](http://upload-images.jianshu.io/upload_images/7178691-7a77f47844f2ee8c.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
 最后，你可能希望对结果索引做一些位移，比如从右边界减去一秒以便更容易明白该时间戳到底表示的是哪个区间。只需通过loffset设置一个字符串或日期偏移量即可实现这个目的：
+
 ```python
 In [219]: ts.resample('5min', closed='right',
    .....:             label='right', loffset='-1s').sum()
@@ -1550,9 +1628,10 @@ Out[219]:
 
 此外，也可以通过调用结果对象的shift方法来实现该目的，这样就不需要设置loffset了。
 
-##OHLC重采样
+### OHLC重采样
 
 金融领域中有一种无所不在的时间序列聚合方式，即计算各面元的四个值：第一个值（open，开盘）、最后一个值（close，收盘）、最大值（high，最高）以及最小值（low，最低）。传入how='ohlc'即可得到一个含有这四种聚合值的DataFrame。整个过程很高效，只需一次扫描即可计算出结果：
+
 ```python
 In [220]: ts.resample('5min').ohlc()
 Out[220]: 
@@ -1562,9 +1641,10 @@ Out[220]:
 2000-01-01 00:10:00    10    11   10     11
 ```
 
-##升采样和插值
+### 升采样和插值
 
 在将数据从低频率转换到高频率时，就不需要聚合了。我们来看一个带有一些周型数据的DataFrame：
+
 ```python
 In [221]: frame = pd.DataFrame(np.random.randn(2, 4),
    .....:                      index=pd.date_range('1/1/2000', periods=2,
@@ -1579,6 +1659,7 @@ Out[222]:
 ```
 
 当你对这个数据进行聚合，每组只有一个值，这样就会引入缺失值。我们使用asfreq方法转换成高频，不经过聚合：
+
 ```python
 In [223]: df_daily = frame.resample('D').asfreq()
 
@@ -1596,6 +1677,7 @@ Out[224]:
 ```
 
 假设你想要用前面的周型值填充“非星期三”。resampling的填充和插值方式跟fillna和reindex的一样：
+
 ```python
 In [225]: frame.resample('D').ffill()
 Out[225]: 
@@ -1611,6 +1693,7 @@ Out[225]:
 ```
 
 同样，这里也可以只填充指定的时期数（目的是限制前面的观测值的持续使用距离）：
+
 ```python
 In [226]: frame.resample('D').ffill(limit=2)
 Out[226]:
@@ -1626,6 +1709,7 @@ Out[226]:
 ```
 
 注意，新的日期索引完全没必要跟旧的重叠：
+
 ```python
 In [227]: frame.resample('W-THU').ffill()
 Out[227]: 
@@ -1634,7 +1718,7 @@ Out[227]:
 2000-01-13 -0.046662  0.927238  0.482284 -0.867130
 ```
 
-## 通过时期进行重采样
+### 通过时期进行重采样
 
 对那些使用时期索引的数据进行重采样与时间戳很像：
 
@@ -1690,10 +1774,11 @@ Out[233]:
 
 由于时期指的是时间区间，所以升采样和降采样的规则就比较严格：
 
-- 在降采样中，目标频率必须是源频率的子时期（subperiod）。
-- 在升采样中，目标频率必须是源频率的超时期（superperiod）。
+* 在降采样中，目标频率必须是源频率的子时期（subperiod）。
+* 在升采样中，目标频率必须是源频率的超时期（superperiod）。
 
 如果不满足这些条件，就会引发异常。这主要影响的是按季、年、周计算的频率。例如，由Q-MAR定义的时间区间只能升采样为A-MAR、A-JUN、A-SEP、A-DEC等：
+
 ```python
 In [234]: annual_frame.resample('Q-MAR').ffill()
 Out[234]: 
@@ -1708,11 +1793,12 @@ Out[234]:
 2002Q3  0.046303  0.163344  0.251503 -0.157276
 ```
 
-# 11.7 移动窗口函数
+## 11.7 移动窗口函数
 
 在移动窗口（可以带有指数衰减权数）上计算的各种统计函数也是一类常见于时间序列的数组变换。这样可以圆滑噪音数据或断裂数据。我将它们称为移动窗口函数（moving window function），其中还包括那些窗口不定长的函数（如指数加权移动平均）。跟其他统计函数一样，移动窗口函数也会自动排除缺失值。
 
 开始之前，我们加载一些时间序列数据，将其重采样为工作日频率：
+
 ```python
 In [235]: close_px_all = pd.read_csv('examples/stock_px_2.csv',
    .....:                            parse_dates=True, index_col=0)
@@ -1723,6 +1809,7 @@ In [237]: close_px = close_px.resample('B').ffill()
 ```
 
 现在引入rolling运算符，它与resample和groupby很像。可以在TimeSeries或DataFrame以及一个window（表示期数，见图11-4）上调用它：
+
 ```python
 In [238]: close_px.AAPL.plot()
 Out[238]: <matplotlib.axes._subplots.AxesSubplot at 0x7f2f2570cf98>
@@ -1730,11 +1817,12 @@ Out[238]: <matplotlib.axes._subplots.AxesSubplot at 0x7f2f2570cf98>
 In [239]: close_px.AAPL.rolling(250).mean().plot()
 ```
 
-![图11-4 苹果公司股价的250日均线](http://upload-images.jianshu.io/upload_images/7178691-3327483eab730b09.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![&#x56FE;11-4 &#x82F9;&#x679C;&#x516C;&#x53F8;&#x80A1;&#x4EF7;&#x7684;250&#x65E5;&#x5747;&#x7EBF;](http://upload-images.jianshu.io/upload_images/7178691-3327483eab730b09.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-表达式rolling(250)与groupby很像，但不是对其进行分组，而是创建一个按照250天分组的滑动窗口对象。然后，我们就得到了苹果公司股价的250天的移动窗口。
+表达式rolling\(250\)与groupby很像，但不是对其进行分组，而是创建一个按照250天分组的滑动窗口对象。然后，我们就得到了苹果公司股价的250天的移动窗口。
 
 默认情况下，rolling函数需要窗口中所有的值为非NA值。可以修改该行为以解决缺失数据的问题。其实，在时间序列开始处尚不足窗口期的那些数据就是个特例（见图11-5）：
+
 ```python
 In [241]: appl_std250 = close_px.AAPL.rolling(250, min_periods=10).std()
 
@@ -1752,21 +1840,24 @@ Freq: B, Name: AAPL, dtype: float64
 In [243]: appl_std250.plot()
 ```
 
-![图11-5 苹果公司250日每日回报标准差](http://upload-images.jianshu.io/upload_images/7178691-15f565bed1ccad09.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![&#x56FE;11-5 &#x82F9;&#x679C;&#x516C;&#x53F8;250&#x65E5;&#x6BCF;&#x65E5;&#x56DE;&#x62A5;&#x6807;&#x51C6;&#x5DEE;](http://upload-images.jianshu.io/upload_images/7178691-15f565bed1ccad09.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-要计算扩展窗口平均（expanding window mean），可以使用expanding而不是rolling。“扩展”意味着，从时间序列的起始处开始窗口，增加窗口直到它超过所有的序列。apple_std250时间序列的扩展窗口平均如下所示：
+要计算扩展窗口平均（expanding window mean），可以使用expanding而不是rolling。“扩展”意味着，从时间序列的起始处开始窗口，增加窗口直到它超过所有的序列。apple\_std250时间序列的扩展窗口平均如下所示：
+
 ```python
 In [244]: expanding_mean = appl_std250.expanding().mean()
 ```
 
-对DataFrame调用rolling_mean（以及与之类似的函数）会将转换应用到所有的列上（见图11-6）：
+对DataFrame调用rolling\_mean（以及与之类似的函数）会将转换应用到所有的列上（见图11-6）：
+
 ```python
 In [246]: close_px.rolling(60).mean().plot(logy=True)
 ```
 
-![图11-6 各股价60日均线（对数Y轴）](http://upload-images.jianshu.io/upload_images/7178691-979f748052b2279f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![&#x56FE;11-6 &#x5404;&#x80A1;&#x4EF7;60&#x65E5;&#x5747;&#x7EBF;&#xFF08;&#x5BF9;&#x6570;Y&#x8F74;&#xFF09;](http://upload-images.jianshu.io/upload_images/7178691-979f748052b2279f.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
 rolling函数也可以接受一个指定固定大小时间补偿字符串，而不是一组时期。这样可以方便处理不规律的时间序列。这些字符串也可以传递给resample。例如，我们可以计算20天的滚动均值，如下所示：
+
 ```python
 In [247]: close_px.rolling('20D').mean()
 Out[247]:
@@ -1795,13 +1886,14 @@ Out[247]:
 [2292 rows x 3 columns]
 ```
 
-## 指数加权函数
+### 指数加权函数
 
 另一种使用固定大小窗口及相等权数观测值的办法是，定义一个衰减因子（decay factor）常量，以便使近期的观测值拥有更大的权数。衰减因子的定义方式有很多，比较流行的是使用时间间隔（span），它可以使结果兼容于窗口大小等于时间间隔的简单移动窗口（simple moving window）函数。
 
 由于指数加权统计会赋予近期的观测值更大的权数，因此相对于等权统计，它能“适应”更快的变化。
 
 除了rolling和expanding，pandas还有ewm运算符。下面这个例子对比了苹果公司股价的30日移动平均和span=30的指数加权移动平均（如图11-7所示）：
+
 ```python
 In [249]: aapl_px = close_px.AAPL['2006':'2007']
 
@@ -1818,11 +1910,12 @@ Out[253]: <matplotlib.axes._subplots.AxesSubplot at 0x7f2f252161d0>
 In [254]: plt.legend()
 ```
 
-![图11-7 简单移动平均与指数加权移动平均](http://upload-images.jianshu.io/upload_images/7178691-dae48defe3749fad.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![&#x56FE;11-7 &#x7B80;&#x5355;&#x79FB;&#x52A8;&#x5E73;&#x5747;&#x4E0E;&#x6307;&#x6570;&#x52A0;&#x6743;&#x79FB;&#x52A8;&#x5E73;&#x5747;](http://upload-images.jianshu.io/upload_images/7178691-dae48defe3749fad.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-## 二元移动窗口函数
+### 二元移动窗口函数
 
 有些统计运算（如相关系数和协方差）需要在两个时间序列上执行。例如，金融分析师常常对某只股票对某个参考指数（如标准普尔500指数）的相关系数感兴趣。要进行说明，我们先计算我们感兴趣的时间序列的百分数变化：
+
 ```python
 In [256]: spx_px = close_px_all['SPX']
 
@@ -1831,28 +1924,30 @@ In [257]: spx_rets = spx_px.pct_change()
 In [258]: returns = close_px.pct_change()
 ```
 
-调用rolling之后，corr聚合函数开始计算与spx_rets滚动相关系数（结果见图11-8）：
+调用rolling之后，corr聚合函数开始计算与spx\_rets滚动相关系数（结果见图11-8）：
+
 ```python
 In [259]: corr = returns.AAPL.rolling(125, min_periods=100).corr(spx_rets)
 
 In [260]: corr.plot()
 ```
 
-![图11-8 AAPL 6个月的回报与标准普尔500指数的相关系数](http://upload-images.jianshu.io/upload_images/7178691-e81e0f602b4db0ed.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![&#x56FE;11-8 AAPL 6&#x4E2A;&#x6708;&#x7684;&#x56DE;&#x62A5;&#x4E0E;&#x6807;&#x51C6;&#x666E;&#x5C14;500&#x6307;&#x6570;&#x7684;&#x76F8;&#x5173;&#x7CFB;&#x6570;](http://upload-images.jianshu.io/upload_images/7178691-e81e0f602b4db0ed.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
-假设你想要一次性计算多只股票与标准普尔500指数的相关系数。虽然编写一个循环并新建一个DataFrame不是什么难事，但比较啰嗦。其实，只需传入一个TimeSeries和一个DataFrame，rolling_corr就会自动计算TimeSeries（本例中就是spx_rets）与DataFrame各列的相关系数。结果如图11-9所示：
+假设你想要一次性计算多只股票与标准普尔500指数的相关系数。虽然编写一个循环并新建一个DataFrame不是什么难事，但比较啰嗦。其实，只需传入一个TimeSeries和一个DataFrame，rolling\_corr就会自动计算TimeSeries（本例中就是spx\_rets）与DataFrame各列的相关系数。结果如图11-9所示：
+
 ```python
 In [262]: corr = returns.rolling(125, min_periods=100).corr(spx_rets)
 
 In [263]: corr.plot()
 ```
 
-![图11-9 3只股票6个月的回报与标准普尔500指数的相关系数](http://upload-images.jianshu.io/upload_images/7178691-0a54a028a62b9b50.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![&#x56FE;11-9 3&#x53EA;&#x80A1;&#x7968;6&#x4E2A;&#x6708;&#x7684;&#x56DE;&#x62A5;&#x4E0E;&#x6807;&#x51C6;&#x666E;&#x5C14;500&#x6307;&#x6570;&#x7684;&#x76F8;&#x5173;&#x7CFB;&#x6570;](http://upload-images.jianshu.io/upload_images/7178691-0a54a028a62b9b50.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
+### 用户定义的移动窗口函数
 
-## 用户定义的移动窗口函数
+rolling\_apply函数使你能够在移动窗口上应用自己设计的数组函数。唯一要求的就是：该函数要能从数组的各个片段中产生单个值（即约简）。比如说，当我们用rolling\(...\).quantile\(q\)计算样本分位数时，可能对样本中特定值的百分等级感兴趣。scipy.stats.percentileofscore函数就能达到这个目的（结果见图11-10）：
 
-rolling_apply函数使你能够在移动窗口上应用自己设计的数组函数。唯一要求的就是：该函数要能从数组的各个片段中产生单个值（即约简）。比如说，当我们用rolling(...).quantile(q)计算样本分位数时，可能对样本中特定值的百分等级感兴趣。scipy.stats.percentileofscore函数就能达到这个目的（结果见图11-10）：
 ```python
 In [265]: from scipy.stats import percentileofscore
 
@@ -1863,12 +1958,13 @@ In [267]: result = returns.AAPL.rolling(250).apply(score_at_2percent)
 In [268]: result.plot()
 ```
 
-![图11-10 AAPL 2%回报率的百分等级（一年窗口期）](http://upload-images.jianshu.io/upload_images/7178691-af49e84a90c23c1e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![&#x56FE;11-10 AAPL 2%&#x56DE;&#x62A5;&#x7387;&#x7684;&#x767E;&#x5206;&#x7B49;&#x7EA7;&#xFF08;&#x4E00;&#x5E74;&#x7A97;&#x53E3;&#x671F;&#xFF09;](http://upload-images.jianshu.io/upload_images/7178691-af49e84a90c23c1e.png?imageMogr2/auto-orient/strip|imageView2/2/w/1240)
 
 如果你没安装SciPy，可以使用conda或pip安装。
 
-# 11.8 总结
+## 11.8 总结
 
 与前面章节接触的数据相比，时间序列数据要求不同类型的分析和数据转换工具。
 
 在接下来的章节中，我们将学习一些高级的pandas方法和如何开始使用建模库statsmodels和scikit-learn。
+

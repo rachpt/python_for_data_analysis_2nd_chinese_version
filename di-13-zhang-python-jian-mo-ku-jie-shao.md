@@ -1,16 +1,19 @@
+# 第13章 Python建模库介绍
+
 本书中，我已经介绍了Python数据分析的编程基础。因为数据分析师和科学家总是在数据规整和准备上花费大量时间，这本书的重点在于掌握这些功能。
 
 开发模型选用什么库取决于应用本身。许多统计问题可以用简单方法解决，比如普通的最小二乘回归，其它问题可能需要复杂的机器学习方法。幸运的是，Python已经成为了运用这些分析方法的语言之一，因此读完此书，你可以探索许多工具。
 
 本章中，我会回顾一些pandas的特点，在你胶着于pandas数据规整和模型拟合和评分时，它们可能派上用场。然后我会简短介绍两个流行的建模工具，statsmodels和scikit-learn。这二者每个都值得再写一本书，我就不做全面的介绍，而是建议你学习两个项目的线上文档和其它基于Python的数据科学、统计和机器学习的书籍。
 
-# 13.1 pandas与模型代码的接口
+## 13.1 pandas与模型代码的接口
 
 模型开发的通常工作流是使用pandas进行数据加载和清洗，然后切换到建模库进行建模。开发模型的重要一环是机器学习中的“特征工程”。它可以描述从原始数据集中提取信息的任何数据转换或分析，这些数据集可能在建模中有用。本书中学习的数据聚合和GroupBy工具常用于特征工程中。
 
 优秀的特征工程超出了本书的范围，我会尽量直白地介绍一些用于数据操作和建模切换的方法。
 
 pandas与其它分析库通常是靠NumPy的数组联系起来的。将DataFrame转换为NumPy数组，可以使用.values属性：
+
 ```python
 In [10]: import pandas as pd
 
@@ -43,6 +46,7 @@ array([[ 1.  ,  0.01, -1.5 ],
 ```
 
 要转换回DataFrame，可以传递一个二维ndarray，可带有列名：
+
 ```python
 In [16]: df2 = pd.DataFrame(data.values, columns=['one', 'two', 'three'])
 
@@ -56,31 +60,33 @@ Out[17]:
 4  5.0  0.00   -2.0
 ```
 
->笔记：最好当数据是均匀的时候使用.values属性。例如，全是数值类型。如果数据是不均匀的，结果会是Python对象的ndarray：
->```python
->In [18]: df3 = data.copy()
+> 笔记：最好当数据是均匀的时候使用.values属性。例如，全是数值类型。如果数据是不均匀的，结果会是Python对象的ndarray：
 >
->In [19]: df3['strings'] = ['a', 'b', 'c', 'd', 'e']
+> ```python
+> In [18]: df3 = data.copy()
 >
->In [20]: df3
->Out[20]: 
+> In [19]: df3['strings'] = ['a', 'b', 'c', 'd', 'e']
+>
+> In [20]: df3
+> Out[20]: 
 >   x0    x1    y strings
->0   1  0.01 -1.5       a
->1   2 -0.01  0.0       b
->2   3  0.25  3.6       c
->3   4 -4.10  1.3       d
->4   5  0.00 -2.0       e
+> 0   1  0.01 -1.5       a
+> 1   2 -0.01  0.0       b
+> 2   3  0.25  3.6       c
+> 3   4 -4.10  1.3       d
+> 4   5  0.00 -2.0       e
 >
->In [21]: df3.values
->Out[21]: 
->array([[1, 0.01, -1.5, 'a'],
+> In [21]: df3.values
+> Out[21]: 
+> array([[1, 0.01, -1.5, 'a'],
 >       [2, -0.01, 0.0, 'b'],
 >       [3, 0.25, 3.6, 'c'],
 >       [4, -4.1, 1.3, 'd'],
 >       [5, 0.0, -2.0, 'e']], dtype=object)
->```
+> ```
 
 对于一些模型，你可能只想使用列的子集。我建议你使用loc，用values作索引：
+
 ```python
 In [22]: model_cols = ['x0', 'x1']
 
@@ -95,7 +101,8 @@ array([[ 1.  ,  0.01],
 
 一些库原生支持pandas，会自动完成工作：从DataFrame转换到NumPy，将模型的参数名添加到输出表的列或Series。其它情况，你可以手工进行“元数据管理”。
 
-在第12章，我们学习了pandas的Categorical类型和pandas.get_dummies函数。假设数据集中有一个非数值列：
+在第12章，我们学习了pandas的Categorical类型和pandas.get\_dummies函数。假设数据集中有一个非数值列：
+
 ```python
 In [24]: data['category'] = pd.Categorical(['a', 'b', 'a', 'a', 'b'],
    ....:                                   categories=['a', 'b'])
@@ -111,6 +118,7 @@ Out[25]:
 ```
 
 如果我们想替换category列为虚变量，我们可以创建虚变量，删除category列，然后添加到结果：
+
 ```python
 In [26]: dummies = pd.get_dummies(data.category, prefix='category')
 
@@ -128,16 +136,18 @@ Out[28]:
 
 用虚变量拟合某些统计模型会有一些细微差别。当你不只有数字列时，使用Patsy（下一节的主题）可能更简单，更不容易出错。
 
-# 13.2 用Patsy创建模型描述
+## 13.2 用Patsy创建模型描述
 
 Patsy是Python的一个库，使用简短的字符串“公式语法”描述统计模型（尤其是线性模型），可能是受到了R和S统计编程语言的公式语法的启发。
 
 Patsy适合描述statsmodels的线性模型，因此我会关注于它的主要特点，让你尽快掌握。Patsy的公式是一个特殊的字符串语法，如下所示：
+
 ```python
 y ~ x0 + x1
 ```
 
 a+b不是将a与b相加的意思，而是为模型创建的设计矩阵。patsy.dmatrices函数接收一个公式字符串和一个数据集（可以是DataFrame或数组的字典），为线性模型创建设计矩阵：
+
 ```python
 In [29]: data = pd.DataFrame({
    ....:     'x0': [1, 2, 3, 4, 5],
@@ -159,6 +169,7 @@ In [32]: y, X = patsy.dmatrices('y ~ x0 + x1', data)
 ```
 
 现在有：
+
 ```python
 In [33]: y
 Out[33]: 
@@ -188,6 +199,7 @@ DesignMatrix with shape (5, 3)
 ```
 
 这些Patsy的DesignMatrix实例是NumPy的ndarray，带有附加元数据：
+
 ```python
 In [35]: np.asarray(y)
 Out[35]: 
@@ -207,6 +219,7 @@ array([[ 1.  ,  1.  ,  0.01],
 ```
 
 你可能想Intercept是哪里来的。这是线性模型（比如普通最小二乘回归）的惯例用法。添加 +0 到模型可以不显示intercept：
+
 ```python
 In [37]: patsy.dmatrices('y ~ x0 + x1 + 0', data)[1]
 Out[37]: 
@@ -223,11 +236,13 @@ DesignMatrix with shape (5, 2)
 ```
 
 Patsy对象可以直接传递到算法（比如numpy.linalg.lstsq）中，它执行普通最小二乘回归：
+
 ```python
 In [38]: coef, resid, _, _ = np.linalg.lstsq(X, y)
 ```
 
-模型的元数据保留在design_info属性中，因此你可以重新附加列名到拟合系数，以获得一个Series，例如：
+模型的元数据保留在design\_info属性中，因此你可以重新附加列名到拟合系数，以获得一个Series，例如：
+
 ```python
 In [39]: coef
 Out[39]: 
@@ -245,9 +260,10 @@ x1          -0.265464
 dtype: float64
 ```
 
-## 用Patsy公式进行数据转换
+### 用Patsy公式进行数据转换
 
 你可以将Python代码与patsy公式结合。在评估公式时，库将尝试查找在封闭作用域内使用的函数：
+
 ```python
 In [42]: y, X = patsy.dmatrices('y ~ x0 + np.log(np.abs(x1) + 1)', data)
 
@@ -267,6 +283,7 @@ DesignMatrix with shape (5, 3)
 ```
 
 常见的变量转换包括标准化（平均值为0，方差为1）和中心化（减去平均值）。Patsy有内置的函数进行这样的工作：
+
 ```python
 In [44]: y, X = patsy.dmatrices('y ~ standardize(x0) + center(x1)', data)
 
@@ -287,7 +304,8 @@ DesignMatrix with shape (5, 3)
 
 作为建模的一步，你可能拟合模型到一个数据集，然后用另一个数据集评估模型。另一个数据集可能是剩余的部分或是新数据。当执行中心化和标准化转变，用新数据进行预测要格外小心。因为你必须使用平均值或标准差转换新数据集，这也称作状态转换。
 
-patsy.build_design_matrices函数可以使用原始样本数据集的保存信息，来转换新数据，：
+patsy.build\_design\_matrices函数可以使用原始样本数据集的保存信息，来转换新数据，：
+
 ```python
 In [46]: new_data = pd.DataFrame({
    ....:     'x0': [6, 7, 8, 9],
@@ -311,6 +329,7 @@ Out[48]:
 ```
 
 因为Patsy中的加号不是加法的意义，当你按照名称将数据集的列相加时，你必须用特殊I函数将它们封装起来：
+
 ```python
 In [49]: y, X = patsy.dmatrices('y ~ I(x0 + x1)', data)
 
@@ -332,11 +351,12 @@ Patsy的patsy.builtins模块还有一些其它的内置转换。请查看线上�
 
 分类数据有一个特殊的转换类，下面进行讲解。
 
-## 分类数据和Patsy
+### 分类数据和Patsy
 
 非数值数据可以用多种方式转换为模型设计矩阵。完整的讲解超出了本书范围，最好和统计课一起学习。
 
 当你在Patsy公式中使用非数值数据，它们会默认转换为虚变量。如果有截距，会去掉一个，避免共线性：
+
 ```python
 In [51]: data = pd.DataFrame({
    ....:     'key1': ['a', 'a', 'b', 'b', 'a', 'b', 'a', 'b'],
@@ -365,6 +385,7 @@ DesignMatrix with shape (8, 2)
 ```
 
 如果你从模型中忽略截距，每个分类值的列都会包括在设计矩阵的模型中：
+
 ```python
 In [54]: y, X = patsy.dmatrices('v2 ~ key1 + 0', data)
 
@@ -385,6 +406,7 @@ DesignMatrix with shape (8, 2)
 ```
 
 使用C函数，数值列可以截取为分类量：
+
 ```python
 In [56]: y, X = patsy.dmatrices('v2 ~ C(key2)', data)
 
@@ -406,6 +428,7 @@ DesignMatrix with shape (8, 2)
 ```
 
 当你在模型中使用多个分类名，事情就会变复杂，因为会包括key1:key2形式的相交部分，它可以用在方差（ANOVA）模型分析中：
+
 ```python
 In [58]: data['key2'] = data['key2'].map({0: 'zero', 1: 'one'})
 
@@ -464,31 +487,33 @@ key1[T.b]:key2[T.zero]
 
 Patsy提供转换分类数据的其它方法，包括以特定顺序转换。请参阅线上文档。
 
-# 13.3 statsmodels介绍
+## 13.3 statsmodels介绍
 
 statsmodels是Python进行拟合多种统计模型、进行统计试验和数据探索可视化的库。Statsmodels包含许多经典的统计方法，但没有贝叶斯方法和机器学习模型。
 
 statsmodels包含的模型有：
 
-- 线性模型，广义线性模型和健壮线性模型
-- 线性混合效应模型
-- 方差（ANOVA）方法分析
-- 时间序列过程和状态空间模型
-- 广义矩估计
+* 线性模型，广义线性模型和健壮线性模型
+* 线性混合效应模型
+* 方差（ANOVA）方法分析
+* 时间序列过程和状态空间模型
+* 广义矩估计
 
 下面，我会使用一些基本的statsmodels工具，探索Patsy公式和pandasDataFrame对象如何使用模型接口。
 
-## 估计线性模型
+### 估计线性模型
 
 statsmodels有多种线性回归模型，包括从基本（比如普通最小二乘）到复杂（比如迭代加权最小二乘法）的。
 
 statsmodels的线性模型有两种不同的接口：基于数组和基于公式。它们可以通过API模块引入：
+
 ```python
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 ```
 
 为了展示它们的使用方法，我们从一些随机数据生成一个线性模型：
+
 ```python
 def dnorm(mean, variance, size=1):
     if isinstance(size, int):
@@ -509,6 +534,7 @@ y = np.dot(X, beta) + eps
 ```
 
 这里，我使用了“真实”模型和可知参数beta。此时，dnorm可用来生成正态分布数据，带有特定均值和方差。现在有：
+
 ```python
 In [66]: X[:5]
 Out[66]: 
@@ -522,7 +548,8 @@ In [67]: y[:5]
 Out[67]: array([ 0.4279, -0.6735, -0.0909, -0.4895,-0.1289])
 ```
 
-像之前Patsy看到的，线性模型通常要拟合一个截距。sm.add_constant函数可以添加一个截距的列到现存的矩阵：
+像之前Patsy看到的，线性模型通常要拟合一个截距。sm.add\_constant函数可以添加一个截距的列到现存的矩阵：
+
 ```python
 In [68]: X_model = sm.add_constant(X)
 
@@ -536,11 +563,13 @@ array([[ 1.    , -0.1295, -1.2128,  0.5042],
 ```
 
 sm.OLS类可以拟合一个普通最小二乘回归：
+
 ```python
 In [70]: model = sm.OLS(y, X)
 ```
 
 这个模型的fit方法返回了一个回归结果对象，它包含估计的模型参数和其它内容：
+
 ```python
 In [71]: results = model.fit()
 
@@ -549,6 +578,7 @@ Out[72]: array([ 0.1783,  0.223 ,  0.501 ])
 ```
 
 对结果使用summary方法可以打印模型的详细诊断结果：
+
 ```python
 In [73]: print(results.summary())
 OLS Regression Results                            
@@ -581,6 +611,7 @@ specified.
 ```
 
 这里的参数名为通用名x1, x2等等。假设所有的模型参数都在一个DataFrame中：
+
 ```python
 In [74]: data = pd.DataFrame(X, columns=['col0', 'col1', 'col2'])
 
@@ -597,6 +628,7 @@ Out[76]:
 ```
 
 现在，我们使用statsmodels的公式API和Patsy的公式字符串：
+
 ```python
 In [77]: results = smf.ols('y ~ col0 + col1 + col2', data=data).fit()
 
@@ -617,9 +649,10 @@ col2         6.303971
 dtype: float64
 ```
 
-观察下statsmodels是如何返回Series结果的，附带有DataFrame的列名。当使用公式和pandas对象时，我们不需要使用add_constant。
+观察下statsmodels是如何返回Series结果的，附带有DataFrame的列名。当使用公式和pandas对象时，我们不需要使用add\_constant。
 
 给出一个样本外数据，你可以根据估计的模型参数计算预测值：
+
 ```python
 In [80]: results.predict(data[:5])
 Out[80]: 
@@ -633,11 +666,12 @@ dtype: float64
 
 statsmodels的线性模型结果还有其它的分析、诊断和可视化工具。除了普通最小二乘模型，还有其它的线性模型。
 
-## 估计时间序列过程
+### 估计时间序列过程
 
 statsmodels的另一模型类是进行时间序列分析，包括自回归过程、卡尔曼滤波和其它态空间模型，和多元自回归模型。
 
 用自回归结构和噪声来模拟一些时间序列数据：
+
 ```python
 init_x = 4
 
@@ -653,7 +687,8 @@ for i in range(N):
     values.append(new_x)
 ```
 
-这个数据有AR(2)结构（两个延迟），参数是0.8和-0.4。拟合AR模型时，你可能不知道滞后项的个数，因此可以用较多的滞后量来拟合这个模型：
+这个数据有AR\(2\)结构（两个延迟），参数是0.8和-0.4。拟合AR模型时，你可能不知道滞后项的个数，因此可以用较多的滞后量来拟合这个模型：
+
 ```python
 In [82]: MAXLAGS = 5
 
@@ -663,6 +698,7 @@ In [84]: results = model.fit(MAXLAGS)
 ```
 
 结果中的估计参数首先是截距，其次是前两个参数的估计值：
+
 ```python
 In [85]: results.params
 Out[85]: array([-0.0062,  0.7845, -0.4085, -0.0136,  0.015 ,  0.0143])
@@ -670,7 +706,7 @@ Out[85]: array([-0.0062,  0.7845, -0.4085, -0.0136,  0.015 ,  0.0143])
 
 更多的细节以及如何解释结果超出了本书的范围，可以通过statsmodels文档学习更多。
 
-# 13.4 scikit-learn介绍
+## 13.4 scikit-learn介绍
 
 scikit-learn是一个广泛使用、用途多样的Python机器学习库。它包含多种标准监督和非监督机器学习方法和模型选择和评估、数据转换、数据加载和模型持久化工具。这些模型可以用于分类、聚合、预测和其它任务。
 
@@ -679,6 +715,7 @@ scikit-learn是一个广泛使用、用途多样的Python机器学习库。它�
 写作此书的时候，scikit-learn并没有和pandas深度结合，但是有些第三方包在开发中。尽管如此，pandas非常适合在模型拟合前处理数据集。
 
 举个例子，我用一个Kaggle竞赛的经典数据集，关于泰坦尼克号乘客的生还率。我们用pandas加载测试和训练数据集：
+
 ```python
 In [86]: train = pd.read_csv('datasets/titanic/train.csv')
 
@@ -704,6 +741,7 @@ Out[88]:
 ```
 
 statsmodels和scikit-learn通常不能接收缺失数据，因此我们要查看列是否包含缺失值：
+
 ```python
 In [89]: train.isnull().sum()
 Out[89]: 
@@ -740,6 +778,7 @@ dtype: int64
 在统计和机器学习的例子中，根据数据中的特征，一个典型的任务是预测乘客能否生还。模型现在训练数据集中拟合，然后用样本外测试数据集评估。
 
 我想用年龄作为预测值，但是它包含缺失值。缺失数据补全的方法有多种，我用的是一种简单方法，用训练数据集的中位数补全两个表的空值：
+
 ```python
 In [91]: impute_value = train['Age'].median()
 
@@ -749,6 +788,7 @@ In [93]: test['Age'] = test['Age'].fillna(impute_value)
 ```
 
 现在我们需要指定模型。我增加了一个列IsFemale，作为“Sex”列的编码：
+
 ```python
 In [94]: train['IsFemale'] = (train['Sex'] == 'female').astype(int)
 
@@ -756,6 +796,7 @@ In [95]: test['IsFemale'] = (test['Sex'] == 'female').astype(int)
 ```
 
 然后，我们确定一些模型变量，并创建NumPy数组：
+
 ```python
 In [96]: predictors = ['Pclass', 'IsFemale', 'Age']
 
@@ -778,6 +819,7 @@ Out[101]: array([0, 1, 1, 1, 0])
 ```
 
 我不能保证这是一个好模型，但它的特征都符合。我们用scikit-learn的LogisticRegression模型，创建一个模型实例：
+
 ```python
 In [102]: from sklearn.linear_model import LogisticRegression
 
@@ -785,6 +827,7 @@ In [103]: model = LogisticRegression()
 ```
 
 与statsmodels类似，我们可以用模型的fit方法，将它拟合到训练数据：
+
 ```python
 In [104]: model.fit(X_train, y_train)
 Out[104]: 
@@ -795,6 +838,7 @@ LogisticRegression(C=1.0, class_weight=None, dual=False, fit_intercept=True,
 ```
 
 现在，我们可以用model.predict，对测试数据进行预测：
+
 ```python
 In [105]: y_predict = model.predict(X_test)
 
@@ -803,6 +847,7 @@ Out[106]: array([0, 0, 0, 0, 1, 0, 1, 0, 1, 0])
 ```
 
 如果你有测试数据集的真是值，你可以计算准确率或其它错误度量值：
+
 ```python
 (y_true == y_predict).mean()
 ```
@@ -810,6 +855,7 @@ Out[106]: array([0, 0, 0, 0, 1, 0, 1, 0, 1, 0])
 在实际中，模型训练经常有许多额外的复杂因素。许多模型有可以调节的参数，有些方法（比如交叉验证）可以用来进行参数调节，避免对训练数据过拟合。这通常可以提高预测性或对新数据的健壮性。
 
 交叉验证通过分割训练数据来模拟样本外预测。基于模型的精度得分（比如均方差），可以对模型参数进行网格搜索。有些模型，如logistic回归，有内置的交叉验证的估计类。例如，logisticregressioncv类可以用一个参数指定网格搜索对模型的正则化参数C的粒度：
+
 ```python
 In [107]: from sklearn.linear_model import LogisticRegressionCV
 
@@ -823,7 +869,8 @@ LogisticRegressionCV(Cs=10, class_weight=None, cv=None, dual=False,
            refit=True, scoring=None, solver='lbfgs', tol=0.0001, verbose=0)
 ```
 
-要手动进行交叉验证，你可以使用cross_val_score帮助函数，它可以处理数据分割。例如，要交叉验证我们的带有四个不重叠训练数据的模型，可以这样做：
+要手动进行交叉验证，你可以使用cross\_val\_score帮助函数，它可以处理数据分割。例如，要交叉验证我们的带有四个不重叠训练数据的模型，可以这样做：
+
 ```python
 In [110]: from sklearn.model_selection import cross_val_score
 
@@ -837,16 +884,17 @@ Out[113]: array([ 0.7723,  0.8027,  0.7703,  0.7883])
 
 默认的评分指标取决于模型本身，但是可以明确指定一个评分。交叉验证过的模型需要更长时间来训练，但会有更高的模型性能。
 
-# 13.5 继续学习
+## 13.5 继续学习
 
 我只是介绍了一些Python建模库的表面内容，现在有越来越多的框架用于各种统计和机器学习，它们都是用Python或Python用户界面实现的。
 
 这本书的重点是数据规整，有其它的书是关注建模和数据科学工具的。其中优秀的有：
 
-- Andreas Mueller and Sarah Guido (O’Reilly)的 《Introduction to Machine Learning with Python》
-- Jake VanderPlas (O’Reilly)的 《Python Data Science Handbook》
-- Joel Grus (O’Reilly) 的 《Data Science from Scratch: First Principles》
-- Sebastian Raschka (Packt Publishing) 的《Python Machine Learning》
-- Aurélien Géron (O’Reilly) 的《Hands-On Machine Learning with Scikit-Learn and TensorFlow》
+* Andreas Mueller and Sarah Guido \(O’Reilly\)的 《Introduction to Machine Learning with Python》
+* Jake VanderPlas \(O’Reilly\)的 《Python Data Science Handbook》
+* Joel Grus \(O’Reilly\) 的 《Data Science from Scratch: First Principles》
+* Sebastian Raschka \(Packt Publishing\) 的《Python Machine Learning》
+* Aurélien Géron \(O’Reilly\) 的《Hands-On Machine Learning with Scikit-Learn and TensorFlow》
 
 虽然书是学习的好资源，但是随着底层开源软件的发展，书的内容会过时。最好是不断熟悉各种统计和机器学习框架的文档，学习最新的功能和API。
+
